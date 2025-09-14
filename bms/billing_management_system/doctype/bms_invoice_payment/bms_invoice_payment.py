@@ -25,7 +25,7 @@ class BMSInvoicePayment(Document):
 			frappe.throw(_("Payment method is required"))
 		
 		valid_methods = [
-			"Credit Card", "Bank Transfer", "PayPal", "Stripe", "Razorpay", "Cash", "Other"
+			"Credit Card", "Debit Card", "Bank Transfer", "UPI", "Wallet", "Cash", "Other"
 		]
 		
 		if self.payment_method not in valid_methods:

@@ -28,6 +28,8 @@
   "refund_amount",
   "refund_status",
   "payment_method",
+  "payment_gateway",
+  "razorpay_subscription_id",
   "notes"
  ],
  "fields": [
@@ -155,12 +157,24 @@
    "fieldname": "payment_method",
    "fieldtype": "Select",
    "label": "Payment Method",
-   "options": "Credit Card\nBank Transfer\nPayPal\nStripe\nRazorpay\nOther"
+   "options": "Credit Card\nDebit Card\nBank Transfer\nUPI\nWallet\nCash\nOther"
+  },
+  {
+   "fieldname": "payment_gateway",
+   "fieldtype": "Select",
+   "label": "Payment Gateway",
+   "options": "\nRazorpay\nStripe\nPayPal\nPayU\nCCAvenue\nBillDesk\nOther"
   },
   {
    "fieldname": "notes",
    "fieldtype": "Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "razorpay_subscription_id",
+   "fieldtype": "Data",
+   "label": "Razorpay Subscription ID",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,

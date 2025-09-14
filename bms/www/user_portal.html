@@ -5,8 +5,13 @@
 {% block page_content %}
 <div class="bms-user-portal">
     <div class="page-header">
-        <h1><i class="fa fa-user-circle"></i> {{ _("BMS User Portal") }}</h1>
-        <p>{{ _("Manage your subscriptions, view invoices, and track payments") }}</p>
+        <h1><i class="fa fa-tachometer-alt"></i> {{ _("My Dashboard") }}</h1>
+        <p>{{ _("Manage your subscriptions, view invoices, and track payment history") }}</p>
+        <div class="text-center mt-3">
+            <a href="/pricing" class="btn btn-primary btn-lg">
+                <i class="fa fa-shopping-cart"></i> {{ _("Browse Available Plans") }}
+            </a>
+        </div>
     </div>
 
     <div class="user-info-card">
@@ -21,48 +26,28 @@
 
     <ul class="nav nav-tabs" id="portalTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="plans-tab" data-bs-toggle="tab" data-bs-target="#plans" type="button"
-                role="tab">
-                <i class="fa fa-tags"></i> {{ _("Browse Plans") }}
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions"
-                type="button" role="tab">
+            <a class="nav-link active" id="subscriptions-tab" data-toggle="tab" href="#subscriptions" role="tab"
+                aria-controls="subscriptions" aria-selected="true">
                 <i class="fa fa-credit-card"></i> {{ _("My Subscriptions") }}
-            </button>
+            </a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button"
-                role="tab">
-                <i class="fa fa-file-text"></i> {{ _("Invoices") }}
-            </button>
+            <a class="nav-link" id="invoices-tab" data-toggle="tab" href="#invoices" role="tab" aria-controls="invoices"
+                aria-selected="false">
+                <i class="fa fa-file-text"></i> {{ _("My Invoices") }}
+            </a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button"
-                role="tab">
-                <i class="fa fa-money"></i> {{ _("Payments") }}
-            </button>
+            <a class="nav-link" id="payments-tab" data-toggle="tab" href="#payments" role="tab" aria-controls="payments"
+                aria-selected="false">
+                <i class="fa fa-money"></i> {{ _("Payment History") }}
+            </a>
         </li>
     </ul>
 
     <div class="tab-content" id="portalTabContent">
-        <!-- Browse Plans Tab -->
-        <div class="tab-pane fade show active" id="plans" role="tabpanel">
-            <div class="bms-card">
-                <h4><i class="fa fa-tags"></i> {{ _("Available Plans") }}</h4>
-                <div id="plansLoading" class="bms-loading">
-                    <i class="fa fa-spinner fa-spin"></i>
-                    <p>{{ _("Loading available plans...") }}</p>
-                </div>
-                <div id="plansContainer" class="plan-grid" style="display: none;">
-                    <!-- Plans will be loaded here -->
-                </div>
-            </div>
-        </div>
-
         <!-- My Subscriptions Tab -->
-        <div class="tab-pane fade" id="subscriptions" role="tabpanel">
+        <div class="tab-pane fade show active" id="subscriptions" role="tabpanel">
             <div class="bms-card">
                 <h4><i class="fa fa-credit-card"></i> {{ _("My Subscriptions") }}</h4>
                 <div id="subscriptionsLoading" class="bms-loading">
@@ -498,14 +483,31 @@
         // Get current user info
         getCurrentUser();
 
-        // Load initial data
-        loadPlans();
+        // Load initial data (subscriptions by default)
+        loadSubscriptions();
 
         // Set up tab change handlers
-        $('#plans-tab').on('click', loadPlans);
-        $('#subscriptions-tab').on('click', loadSubscriptions);
-        $('#invoices-tab').on('click', loadInvoices);
-        $('#payments-tab').on('click', loadPayments);
+        $('#subscriptions-tab').on('click', function () {
+            setTimeout(loadSubscriptions, 100);
+        });
+        $('#invoices-tab').on('click', function () {
+            setTimeout(loadInvoices, 100);
+        });
+        $('#payments-tab').on('click', function () {
+            setTimeout(loadPayments, 100);
+        });
+
+        // Also handle tab shown events for Bootstrap
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            const target = $(e.target).attr("href");
+            if (target === '#subscriptions') {
+                loadSubscriptions();
+            } else if (target === '#invoices') {
+                loadInvoices();
+            } else if (target === '#payments') {
+                loadPayments();
+            }
+        });
     }
 
     function getCurrentUser() {
@@ -532,201 +534,6 @@
         });
     }
 
-    function loadPlans() {
-        $('#plansLoading').show();
-        $('#plansContainer').hide();
-
-        // Use Frappe API to get available plans
-        frappe.call({
-            method: 'bms.billing_management_system.api.user_portal.get_user_plans',
-            args: {
-                customer_email: currentUser ? currentUser.email : null
-            },
-            callback: function (r) {
-                if (r.message) {
-                    renderPlans(r.message);
-                } else {
-                    showError('Failed to load available plans.');
-                }
-            },
-            error: function (err) {
-                showError('Error loading plans: ' + (err.message || 'Unknown error'));
-            }
-        });
-    }
-
-    function renderPlans(plans) {
-        const container = $('#plansContainer');
-        container.empty();
-
-        if (plans.length === 0) {
-            container.html(`
-                <div class="alert alert-info">
-                    <i class="fa fa-info-circle"></i>
-                    No plans available for your account.
-                </div>
-            `);
-        } else {
-            plans.forEach((plan, index) => {
-                const card = createPlanCard(plan, index);
-                container.append(card);
-            });
-        }
-
-        $('#plansLoading').hide();
-        container.show();
-    }
-
-    function createPlanCard(plan, index) {
-        const is_featured = index === 1; // Make second plan featured
-        const cardClass = is_featured ? 'plan-card featured' : 'plan-card';
-
-        return $(`
-            <div class="${cardClass}">
-                ${is_featured ? '<div class="plan-badge">Most Popular</div>' : ''}
-                <div class="plan-name">${plan.plan_name}</div>
-                <div class="plan-description">${plan.plan_description || 'Perfect for your business needs'}</div>
-                
-                <div class="plan-price">
-                    <div class="price-amount">
-                        <span class="price-currency">${plan.currency || '$'}</span>${plan.amount || '0'}
-                    </div>
-                    <div class="price-period">per ${plan.billing_cycle ? plan.billing_cycle.toLowerCase() : 'month'}</div>
-                </div>
-                
-                <ul class="plan-features">
-                    ${(plan.features || []).map(feature => `
-                        <li><i class="fa fa-check"></i> ${feature}</li>
-                    `).join('')}
-                </ul>
-                
-                <button class="btn btn-primary" onclick="selectPlan('${plan.name}')">
-                    <i class="fa fa-arrow-right"></i> Choose Plan
-                </button>
-            </div>
-        `);
-    }
-
-    function selectPlan(planId) {
-        // Find the selected plan from the loaded plans
-        const container = $('#plansContainer');
-        const planCards = container.find('.plan-card');
-        let selectedPlanData = null;
-
-        // Get plan data from the card
-        planCards.each(function () {
-            const card = $(this);
-            const button = card.find('button');
-            if (button.length && button.attr('onclick').includes(planId)) {
-                const planName = card.find('.plan-name').text();
-                const planDescription = card.find('.plan-description').text();
-                const priceAmount = card.find('.price-amount').text();
-                const pricePeriod = card.find('.price-period').text();
-
-                selectedPlanData = {
-                    name: planId,
-                    plan_name: planName,
-                    description: planDescription,
-                    price_display: priceAmount,
-                    period: pricePeriod
-                };
-            }
-        });
-
-        if (!selectedPlanData) {
-            showError('Plan not found. Please try again.');
-            return;
-        }
-
-        selectedPlan = selectedPlanData;
-
-        // Initiate Razorpay payment directly
-        initiateRazorpayPayment(selectedPlan);
-    }
-
-    function initiateRazorpayPayment(plan) {
-        // Extract amount from price display (remove currency symbol and convert to paise)
-        const amountText = plan.price_display.replace(/[^\d.]/g, '');
-        const amount = Math.round(parseFloat(amountText) * 100); // Convert to paise
-
-        // Create Razorpay order first
-        frappe.call({
-            method: 'bms.billing_management_system.api.user_portal.create_razorpay_order',
-            args: {
-                plan: plan.name,
-                customer_email: currentUser ? currentUser.email : null,
-                amount: amount,
-                currency: 'INR'
-            },
-            callback: function (r) {
-                if (r.message && r.message.order_id) {
-                    // Initialize Razorpay checkout
-                    const options = {
-                        key: r.message.key_id, // Your Razorpay key ID
-                        amount: amount,
-                        currency: 'INR',
-                        name: 'BMS Subscription',
-                        description: plan.plan_name,
-                        order_id: r.message.order_id,
-                        prefill: {
-                            name: currentUser.full_name || currentUser.name,
-                            email: currentUser.email,
-                            contact: currentUser.phone || ''
-                        },
-                        theme: {
-                            color: '#007bff'
-                        },
-                        handler: function (response) {
-                            // Payment successful
-                            handlePaymentSuccess(response, plan);
-                        },
-                        modal: {
-                            ondismiss: function () {
-                                showMessage('info', 'Payment cancelled by user');
-                            }
-                        }
-                    };
-
-                    const rzp = new Razorpay(options);
-                    rzp.open();
-                } else {
-                    showError('Failed to create payment order. Please try again.');
-                }
-            },
-            error: function (err) {
-                showError('Error initiating payment: ' + (err.message || 'Unknown error'));
-            }
-        });
-    }
-
-    function handlePaymentSuccess(response, plan) {
-        // Verify payment and create subscription
-        frappe.call({
-            method: 'bms.billing_management_system.api.user_portal.verify_payment_and_create_subscription',
-            args: {
-                plan: plan.name,
-                customer_email: currentUser ? currentUser.email : null,
-                payment_id: response.razorpay_payment_id,
-                order_id: response.razorpay_order_id,
-                signature: response.razorpay_signature,
-                payment_method: "Razorpay"
-            },
-            callback: function (r) {
-                if (r.message && r.message.status === 'success') {
-                    showMessage('success', 'Payment successful! Your subscription is now active.');
-                    // Refresh subscriptions
-                    setTimeout(() => {
-                        loadSubscriptions();
-                    }, 2000);
-                } else {
-                    showError(r.message ? r.message.message : 'Payment verification failed.');
-                }
-            },
-            error: function (err) {
-                showError('Error processing payment: ' + (err.message || 'Unknown error'));
-            }
-        });
-    }
 
     function loadSubscriptions() {
         $('#subscriptionsLoading').show();
@@ -832,6 +639,7 @@
     }
 
     function loadInvoices() {
+        console.log('Loading invoices for user:', currentUser);
         $('#invoicesLoading').show();
         $('#invoicesContainer').hide();
 
@@ -842,6 +650,8 @@
                 customer_email: currentUser ? currentUser.email : null
             },
             callback: function (r) {
+                console.log('Invoices response:', r);
+                $('#invoicesLoading').hide();
                 if (r.message) {
                     renderInvoices(r.message);
                 } else {
@@ -849,12 +659,15 @@
                 }
             },
             error: function (err) {
+                console.error('Error loading invoices:', err);
+                $('#invoicesLoading').hide();
                 showError('Error loading invoices: ' + (err.message || 'Unknown error'));
             }
         });
     }
 
     function renderInvoices(invoices) {
+        console.log('Rendering invoices:', invoices);
         const container = $('#invoicesContainer');
         container.empty();
 
@@ -907,6 +720,7 @@
     }
 
     function loadPayments() {
+        console.log('Loading payments for user:', currentUser);
         $('#paymentsLoading').show();
         $('#paymentsContainer').hide();
 
@@ -917,6 +731,8 @@
                 customer_email: currentUser ? currentUser.email : null
             },
             callback: function (r) {
+                console.log('Payments response:', r);
+                $('#paymentsLoading').hide();
                 if (r.message) {
                     renderPayments(r.message);
                 } else {
@@ -924,12 +740,15 @@
                 }
             },
             error: function (err) {
+                console.error('Error loading payments:', err);
+                $('#paymentsLoading').hide();
                 showError('Error loading payments: ' + (err.message || 'Unknown error'));
             }
         });
     }
 
     function renderPayments(payments) {
+        console.log('Rendering payments:', payments);
         const container = $('#paymentsContainer');
         container.empty();
 

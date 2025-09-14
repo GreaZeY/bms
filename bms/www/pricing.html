@@ -1,0 +1,812 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Pricing Plans{% endblock %}
+
+
+{% block page_content %}
+<div class="container-fluid px-0">
+    <style>
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-header p {
+            font-size: 1.2rem;
+            color: #6c757d;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .plan-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color, #007bff);
+        }
+
+        .plan-card.featured {
+            border-color: var(--primary-color, #007bff);
+            transform: scale(1.05);
+        }
+
+        .plan-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--primary-color, #007bff);
+            color: white;
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .plan-card.featured .plan-header {
+            margin-top: 1rem;
+        }
+
+        .plan-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-color, #007bff);
+            margin: 1rem 0;
+        }
+
+        .plan-price .currency {
+            font-size: 1.5rem;
+            vertical-align: top;
+        }
+
+        .plan-price .period {
+            font-size: 1rem;
+            color: #6c757d;
+            font-weight: 400;
+        }
+
+        .plan-description {
+            color: #6c757d;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: #495057;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .plan-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .choose-plan-btn {
+            background: var(--primary-color, #007bff);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .choose-plan-btn:hover {
+            background: var(--primary-color-dark, #0056b3);
+            transform: translateY(-2px);
+        }
+
+        .choose-plan-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .active-plan-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            position: relative;
+        }
+
+        .active-plan-btn:hover {
+            background: #218838;
+        }
+
+        .plan-card.active-subscription {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f8fff9 0%, #f0fff1 100%);
+        }
+
+        .plan-card.active-subscription::before {
+            content: 'Current Plan';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #28a745;
+            color: white;
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .plan-card.active-subscription .plan-header {
+            margin-top: 1rem;
+        }
+
+        .subscription-info {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .subscription-info strong {
+            color: #28a745;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid transparent;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .login-prompt {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        .login-prompt h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .login-prompt p {
+            color: #6c757d;
+            margin-bottom: 2rem;
+        }
+
+        .btn-login {
+            background: var(--primary-color, #007bff);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-color-dark, #0056b3);
+            color: white;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .pricing-header h1 {
+                font-size: 2rem;
+            }
+
+            .plans-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .plan-card.featured {
+                transform: none;
+            }
+
+            .plan-price {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+
+    <div class="pricing-container">
+        <div class="pricing-header">
+            <h1>Choose Your Plan</h1>
+            <p>Select the perfect plan for your needs. All plans include our core features with different usage limits
+                and priority support.</p>
+        </div>
+
+        <!-- Login Prompt (shown when not logged in) -->
+        <div id="loginPrompt" class="login-prompt" style="display: none;">
+            <h3>Please Login to Continue</h3>
+            <p>You need to be logged in to view available plans and make purchases.</p>
+            <a href="/login" class="btn-login">Login to Your Account</a>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading plans...</span>
+            </div>
+            <p class="mt-2">Loading available plans...</p>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div id="messageContainer"></div>
+
+        <!-- Plans Grid -->
+        <div id="plansGrid" class="plans-grid" style="display: none;">
+            <!-- Plans will be loaded here dynamically -->
+        </div>
+
+        <!-- User Portal Link -->
+        <div class="text-center mt-4">
+            <p class="text-muted">Already have a subscription? <a href="/user_portal" class="text-primary">Manage your
+                    subscription</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentUser = null;
+    let availablePlans = [];
+
+    // Utility functions
+    function showMessage(type, message) {
+        const container = document.getElementById('messageContainer');
+        const alertClass = type === 'success' ? 'alert-success' :
+            type === 'error' ? 'alert-danger' : 'alert-warning';
+
+        container.innerHTML = `
+            <div class="alert ${alertClass}" role="alert">
+                ${message}
+            </div>
+        `;
+
+        // Auto-hide success messages
+        if (type === 'success') {
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    }
+
+    function showError(message) {
+        showMessage('error', message);
+    }
+
+    function formatCurrency(amount, currency = 'USD') {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency
+        }).format(amount);
+    }
+
+    function initializeRazorpay() {
+        // Load Razorpay script if not already loaded
+        if (!window.Razorpay) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            document.head.appendChild(script);
+        }
+    }
+
+    // Get current user info
+    function getCurrentUser() {
+        // Try multiple ways to get user info
+        if (typeof frappe !== 'undefined') {
+            // Method 1: Check frappe.user (preferred)
+            if (frappe.user && frappe.user.name && frappe.user.name !== 'Guest') {
+                currentUser = {
+                    name: frappe.user.name,
+                    email: frappe.user.email || frappe.user.name,
+                    full_name: frappe.user.full_name || frappe.user.name
+                };
+                console.log('Current user detected via frappe.user:', currentUser);
+                return true;
+            }
+
+            // Method 2: Check frappe.session (fallback)
+            if (frappe.session && frappe.session.user && frappe.session.user !== 'Guest') {
+                currentUser = {
+                    name: frappe.session.user,
+                    email: frappe.session.user,
+                    full_name: frappe.session.user_fullname || frappe.session.user
+                };
+                console.log('Current user detected via frappe.session:', currentUser);
+                return true;
+            }
+        }
+
+        console.log('No user session found or user is Guest. frappe.user:', typeof frappe !== 'undefined' ? frappe.user : 'frappe not defined');
+
+        // Method 3: Try to get user via API call (as fallback)
+        if (typeof frappe !== 'undefined' && frappe.call) {
+            console.log('Trying to get user via API call...');
+            frappe.call({
+                method: 'bms.billing_management_system.api.user_portal.get_current_customer',
+                callback: function (r) {
+                    if (r.message && r.message.email) {
+                        currentUser = {
+                            name: r.message.email,
+                            email: r.message.email,
+                            full_name: r.message.customer_name || r.message.email
+                        };
+                        console.log('Current user detected via API:', currentUser);
+
+                        // Hide login prompt and load plans
+                        document.getElementById('loginPrompt').style.display = 'none';
+                        loadPlans();
+                    } else {
+                        console.log('API call returned no user data');
+                    }
+                },
+                error: function (err) {
+                    console.log('API call failed - user not logged in');
+                }
+            });
+        }
+
+        return false;
+    }
+
+    // Load available plans
+    function loadPlans() {
+        if (!currentUser) {
+            document.getElementById('loginPrompt').style.display = 'block';
+            document.getElementById('loadingSpinner').style.display = 'none';
+            return;
+        }
+
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_user_plans',
+            args: {
+                customer_email: currentUser.email
+            },
+            callback: function (r) {
+                document.getElementById('loadingSpinner').style.display = 'none';
+
+                if (r.message && Array.isArray(r.message)) {
+                    availablePlans = r.message;
+                    renderPlans();
+                } else {
+                    showError('Failed to load plans. Please try again.');
+                }
+            },
+            error: function (err) {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                console.error('Error loading plans:', err);
+                showError('Failed to load plans. Please check your connection and try again.');
+            }
+        });
+    }
+
+    // Render plans in the grid
+    function renderPlans() {
+        console.log('Rendering plans:', availablePlans);
+        const grid = document.getElementById('plansGrid');
+
+        if (availablePlans.length === 0) {
+            grid.innerHTML = `
+                <div class="col-12 text-center">
+                    <div class="alert alert-warning">
+                        <h4>No Plans Available</h4>
+                        <p>There are currently no plans available for your account. Please contact support for assistance.</p>
+                    </div>
+                </div>
+            `;
+            grid.style.display = 'block';
+            return;
+        }
+
+        grid.innerHTML = availablePlans.map((plan, index) => {
+            const hasActiveSub = plan.has_active_subscription;
+            const isFeatured = !hasActiveSub && (plan.is_featured || index === 1); // Featured only if not active
+            const features = plan.features && Array.isArray(plan.features) ? plan.features :
+                plan.features && typeof plan.features === 'string' ? plan.features.split('\n').filter(f => f.trim()) :
+                    ['Full access to core features', 'Email support', '24/7 availability'];
+
+            // Generate subscription info if active
+            let subscriptionInfo = '';
+            if (hasActiveSub && plan.subscription) {
+                const sub = plan.subscription;
+                const startDate = new Date(sub.start_date).toLocaleDateString();
+                const endDate = sub.end_date ? new Date(sub.end_date).toLocaleDateString() : 'N/A';
+                const nextBilling = sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString() : 'N/A';
+
+                subscriptionInfo = `
+                    <div class="subscription-info">
+                        <strong>Status:</strong> ${sub.status}<br>
+                        <strong>Started:</strong> ${startDate}<br>
+                        ${sub.status === 'Active' ? `<strong>Next Billing:</strong> ${nextBilling}` :
+                        sub.end_date ? `<strong>Ends:</strong> ${endDate}` : ''}
+                    </div>
+                `;
+            }
+
+            // Generate button based on subscription status
+            let actionButton = '';
+            if (hasActiveSub) {
+                actionButton = `
+                    <a href="/user_portal" class="active-plan-btn">
+                        <i class="fa fa-cog"></i> Manage Subscription
+                    </a>
+                `;
+            } else {
+                actionButton = `
+                    <button class="choose-plan-btn" onclick="choosePlan('${plan.name}')">
+                        <i class="fa fa-shopping-cart"></i> Choose ${plan.plan_name}
+                    </button>
+                `;
+            }
+
+            const cardClasses = [
+                'plan-card',
+                hasActiveSub ? 'active-subscription' : '',
+                isFeatured ? 'featured' : ''
+            ].filter(Boolean).join(' ');
+
+            return `
+                <div class="${cardClasses}" data-plan="${plan.name}">
+                    <div class="plan-header">
+                        <h3>${plan.plan_name}</h3>
+                    </div>
+                    
+                    <div class="plan-price">
+                        <span class="currency">${plan.currency || '$'}</span>${plan.amount}
+                        <span class="period">/${plan.billing_cycle || 'month'}</span>
+                    </div>
+                    
+                    <div class="plan-description">
+                        ${plan.plan_description || plan.description || 'Perfect for getting started with our platform'}
+                    </div>
+                    
+                    ${subscriptionInfo}
+                    
+                    <ul class="plan-features">
+                        ${features.map(feature => `<li>${feature.trim()}</li>`).join('')}
+                    </ul>
+                    
+                    ${actionButton}
+                </div>
+            `;
+        }).join('');
+
+        grid.style.display = 'grid';
+    }
+
+    // Choose a plan and initiate payment
+    function choosePlan(planName) {
+        console.log('choosePlan called with:', planName, 'currentUser:', currentUser);
+
+        if (!currentUser) {
+            showError('Please login to choose a plan.');
+            return;
+        }
+
+        const plan = availablePlans.find(p => p.name === planName);
+        if (!plan) {
+            showError('Plan not found. Please refresh the page and try again.');
+            return;
+        }
+
+        // Check if user already has active subscription for this plan
+        if (plan.has_active_subscription) {
+            showError('You already have an active subscription for this plan. Please manage your subscription from the dashboard.');
+            return;
+        }
+
+        console.log('Selected plan:', plan);
+
+        // Disable all buttons
+        document.querySelectorAll('.choose-plan-btn').forEach(btn => {
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+        });
+
+        // Create Razorpay subscription
+        console.log('Creating Razorpay subscription...');
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.create_razorpay_subscription',
+            args: {
+                plan: planName,
+                customer_email: currentUser.email
+            },
+            callback: function (r) {
+                console.log('Razorpay subscription creation response:', r);
+                if (r.message && r.message.status === 'success' && r.message.subscription) {
+                    console.log('Subscription created successfully:', r.message.subscription);
+                    handleSubscriptionCreated(r.message.subscription, plan);
+                } else {
+                    console.error('Subscription creation failed:', r);
+                    showError('Failed to create subscription. Please try again.');
+                    resetButtons();
+                }
+            },
+            error: function (err) {
+                console.error('Error creating order:', err);
+                showError('Failed to create payment order. Please try again.');
+                resetButtons();
+            }
+        });
+    }
+
+    // Handle subscription creation and initiate payment checkout
+    function handleSubscriptionCreated(subscription, plan) {
+        console.log('Subscription created:', subscription);
+
+        // Use Razorpay's subscription authentication
+        showMessage('info', 'Subscription created! Authenticating payment method...');
+
+        // Use proper Razorpay subscription authentication
+        showMessage('info', 'Opening subscription authentication...');
+
+        // Use Razorpay's proper subscription checkout
+        initiateSubscriptionAuthentication(subscription, plan);
+    }
+
+
+    // Initiate proper Razorpay subscription authentication
+    function initiateSubscriptionAuthentication(subscription, plan) {
+        if (!window.Razorpay) {
+            showError('Payment gateway not loaded. Please refresh the page and try again.');
+            resetButtons();
+            return;
+        }
+
+        // Get Razorpay key from subscription data
+        const razorpay_key = subscription.key_id || 'rzp_test_RHC1S9293wovjQ';
+
+        const options = {
+            key: razorpay_key,
+            subscription_id: subscription.id,
+            name: 'BMS Subscription',
+            description: `${plan.plan_name} - Subscription Setup`,
+            prefill: {
+                name: currentUser.full_name,
+                email: currentUser.email,
+                contact: currentUser.mobile_no || ''
+            },
+            theme: {
+                color: '#007bff'
+            },
+            handler: function (response) {
+                // For subscription authentication, response contains razorpay_payment_id and razorpay_signature
+                handleSubscriptionAuthSuccess(response, subscription, plan);
+            },
+            modal: {
+                ondismiss: function () {
+                    showMessage('info', 'Payment cancelled. You can try again anytime.');
+                    resetButtons();
+                }
+            }
+        };
+
+        console.log('Initiating Razorpay subscription with options:', options);
+        const rzp = new Razorpay(options);
+        rzp.open();
+    }
+
+    // Handle successful subscription authentication
+    function handleSubscriptionAuthSuccess(response, subscription, plan) {
+        // For subscription authentication, response contains razorpay_payment_id and razorpay_signature
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.handle_razorpay_subscription_success',
+            args: {
+                subscription_id: subscription.id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: plan.name,
+                customer_email: currentUser.email
+            },
+            callback: function (r) {
+                if (r.message && r.message.status === 'success') {
+                    showMessage('success', 'Subscription activated successfully!');
+                    setTimeout(() => {
+                        window.location.href = '/user_portal';
+                    }, 2000);
+                } else {
+                    showError('Payment verification failed. Please contact support.');
+                    resetButtons();
+                }
+            },
+            error: function (err) {
+                console.error('Payment verification error:', err);
+                showError('Payment verification failed. Please contact support.');
+                resetButtons();
+            }
+        });
+    }
+
+
+    // Handle successful payment
+    function handlePaymentSuccess(response, plan) {
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.verify_payment_and_create_subscription',
+            args: {
+                plan: plan.name,
+                customer_email: currentUser.email,
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+                payment_method: "Razorpay"
+            },
+            callback: function (r) {
+                if (r.message && r.message.status === 'success') {
+                    showMessage('success', 'Payment successful! Your subscription is now active.');
+
+                    // Redirect to user portal after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/user_portal';
+                    }, 3000);
+
+                    // Update the UI
+                    document.getElementById('plansGrid').style.display = 'none';
+                    document.getElementById('messageContainer').innerHTML += `
+                        <div class="alert alert-success text-center">
+                            <h4>Welcome to ${plan.plan_name}!</h4>
+                            <p>Redirecting you to your dashboard...</p>
+                            <a href="/user_portal" class="btn-login">Go to Dashboard Now</a>
+                        </div>
+                    `;
+                } else {
+                    showError('Payment verification failed. Please contact support.');
+                    resetButtons();
+                }
+            },
+            error: function (err) {
+                console.error('Payment verification error:', err);
+                showError('Payment verification failed. Please contact support.');
+                resetButtons();
+            }
+        });
+    }
+
+    // Reset button states
+    function resetButtons() {
+        document.querySelectorAll('.choose-plan-btn').forEach(btn => {
+            btn.disabled = false;
+            const planName = btn.closest('.plan-card').dataset.plan;
+            const plan = availablePlans.find(p => p.name === planName);
+            btn.textContent = `Choose ${plan ? plan.plan_name : 'Plan'}`;
+        });
+    }
+
+    // Initialize the page
+    function initializePage() {
+        console.log('Initializing pricing page...');
+        console.log('Frappe available:', typeof frappe !== 'undefined');
+        console.log('Frappe user:', typeof frappe !== 'undefined' ? frappe.user : 'N/A');
+        console.log('Frappe session:', typeof frappe !== 'undefined' ? frappe.session : 'N/A');
+
+        if (getCurrentUser()) {
+            console.log('User authenticated, loading plans...');
+            loadPlans();
+        } else {
+            console.log('No user found, showing login prompt...');
+            document.getElementById('loginPrompt').style.display = 'block';
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        initializeRazorpay();
+    }
+
+    // Initialize when page is ready
+    function waitForDependencies() {
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        function checkDependencies() {
+            attempts++;
+
+            // Check if both jQuery and Frappe are available
+            if (typeof $ !== 'undefined' && typeof frappe !== 'undefined' && frappe.call) {
+                initializePage();
+            } else if (attempts < maxAttempts) {
+                setTimeout(checkDependencies, 250);
+            } else {
+                // Fallback: try to initialize anyway
+                try {
+                    initializePage();
+                } catch (e) {
+                    document.getElementById('loginPrompt').style.display = 'block';
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    showError('Unable to load the page. Please refresh and try again.');
+                }
+            }
+        }
+
+        checkDependencies();
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForDependencies);
+    } else {
+        waitForDependencies();
+    }
+</script>
+{% endblock %}

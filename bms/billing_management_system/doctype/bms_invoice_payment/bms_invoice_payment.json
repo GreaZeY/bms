@@ -10,6 +10,7 @@
   "payment_date",
   "amount",
   "payment_method",
+  "payment_gateway",
   "reference",
   "status"
  ],
@@ -33,8 +34,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Payment Method",
-   "options": "Credit Card\nBank Transfer\nPayPal\nStripe\nRazorpay\nCash\nOther",
+   "options": "Credit Card\nDebit Card\nBank Transfer\nUPI\nWallet\nCash\nOther",
    "reqd": 1
+  },
+  {
+   "fieldname": "payment_gateway",
+   "fieldtype": "Select",
+   "label": "Payment Gateway",
+   "options": "\nRazorpay\nStripe\nPayPal\nPayU\nCCAvenue\nBillDesk\nOther"
   },
   {
    "fieldname": "reference",

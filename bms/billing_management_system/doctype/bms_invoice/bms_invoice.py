@@ -45,7 +45,8 @@ class BMSInvoice(Document):
 	
 	def handle_status_change(self):
 		"""Handle status changes"""
-		if self.status == "Paid":
+		if self.status == "Paid" and not frappe.flags.via_api:
+			# Only auto-create payment if not created via API (to prevent duplicates)
 			self.create_payment_record()
 		elif self.status == "Overdue":
 			self.send_overdue_notification()
@@ -55,26 +56,35 @@ class BMSInvoice(Document):
 		if not self.subscription:
 			return
 		
-		# Check if payment record already exists
+		# Check if payment record already exists for this subscription and amount
 		existing_payment = frappe.get_all("BMS Payment",
 			filters={
-				"invoice": self.name,
+				"subscription": self.subscription,
+				"amount": self.amount,
 				"status": "Completed"
 			}
 		)
 		
-		if not existing_payment:
-			payment_doc = frappe.new_doc("BMS Payment")
-			payment_doc.customer = self.customer
-			payment_doc.subscription = self.subscription
-			payment_doc.plan = self.plan
-			payment_doc.invoice = self.name
-			payment_doc.amount = self.total_amount
-			payment_doc.currency = self.currency
-			payment_doc.payment_type = "Payment"
-			payment_doc.status = "Completed"
-			payment_doc.payment_date = frappe.utils.today()
-			payment_doc.save(ignore_permissions=True)
+		if existing_payment:
+			frappe.log_error(f"Payment already exists for subscription {self.subscription} with amount {self.amount}")
+			return
+		
+		# Only create payment if none exists
+		payment_doc = frappe.new_doc("BMS Payment")
+		payment_doc.naming_series = "PAY-.YYYY.-.MM.-.#####"
+		payment_doc.customer = self.customer
+		payment_doc.subscription = self.subscription
+		payment_doc.plan = self.plan
+		payment_doc.invoice = self.name
+		payment_doc.amount = self.amount
+		payment_doc.currency = self.currency
+		payment_doc.payment_type = "Payment"
+		payment_doc.status = "Completed"
+		payment_doc.payment_date = frappe.utils.today()
+		payment_doc.payment_method = "Credit Card"  # Default for manual entries
+		payment_doc.payment_gateway = ""  # No gateway for manual entries
+		payment_doc.notes = "Auto-generated payment record for paid invoice"
+		payment_doc.save(ignore_permissions=True)
 	
 	def send_overdue_notification(self):
 		"""Send overdue notification to customer"""

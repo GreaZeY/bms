@@ -23,6 +23,7 @@
   "tax_id",
   "status",
   "notes",
+  "razorpay_customer_id",
   "column_break_15",
   "created_by",
   "creation_date",
@@ -123,6 +124,13 @@
    "fieldname": "notes",
    "fieldtype": "Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "razorpay_customer_id",
+   "fieldtype": "Data",
+   "label": "Razorpay Customer ID",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "column_break_15",

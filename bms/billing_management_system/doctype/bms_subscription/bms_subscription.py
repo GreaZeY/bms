@@ -82,8 +82,9 @@ class BMSSubscription(Document):
 	
 	def after_insert(self):
 		"""Handle new subscription creation"""
-		# Create initial invoice when subscription is created and active
-		if self.status in ["Active", "Trial"]:
+		# Only create invoice if this subscription was created manually (not via API)
+		# API functions handle invoice creation themselves to avoid duplicates
+		if self.status in ["Active", "Trial"] and not frappe.flags.via_api:
 			try:
 				frappe.log_error(f"Creating invoice for new subscription {self.name} with status {self.status}")
 				self.create_invoice()

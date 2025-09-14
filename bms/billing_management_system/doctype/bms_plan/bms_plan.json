@@ -25,9 +25,10 @@
    "auto_renewal",
    "cancellation_policy",
    "refund_policy",
-   "column_break_18",
-   "plan_visibility",
-   "target_customers"
+  "column_break_18",
+  "plan_visibility",
+  "target_customers",
+  "razorpay_plan_id"
   ],
  "fields": [
   {
@@ -156,6 +157,13 @@
    "options": "BMS Plan Customer",
    "depends_on": "plan_visibility",
    "mandatory_depends_on": "plan_visibility==Specific Customers"
+  },
+  {
+   "fieldname": "razorpay_plan_id",
+   "fieldtype": "Data",
+   "label": "Razorpay Plan ID",
+   "read_only": 1,
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 1,

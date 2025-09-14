@@ -21,10 +21,12 @@
   "status",
   "column_break_12",
   "payment_method",
+  "payment_gateway",
   "reference",
   "gateway_transaction_id",
   "razorpay_payment_id",
   "razorpay_order_id",
+  "razorpay_subscription_id",
   "refund_reason",
   "refund_date",
   "notes"
@@ -117,8 +119,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Payment Method",
-   "options": "Credit Card\nBank Transfer\nPayPal\nStripe\nRazorpay\nCash\nOther",
+   "options": "Credit Card\nDebit Card\nBank Transfer\nUPI\nWallet\nCash\nOther",
    "reqd": 1
+  },
+  {
+   "fieldname": "payment_gateway",
+   "fieldtype": "Select",
+   "label": "Payment Gateway",
+   "options": "\nRazorpay\nStripe\nPayPal\nPayU\nCCAvenue\nBillDesk\nOther"
   },
   {
    "fieldname": "reference",
@@ -139,6 +147,12 @@
    "fieldname": "razorpay_order_id",
    "fieldtype": "Data",
    "label": "Razorpay Order ID"
+  },
+  {
+   "fieldname": "razorpay_subscription_id",
+   "fieldtype": "Data",
+   "label": "Razorpay Subscription ID",
+   "read_only": 1
   },
   {
    "fieldname": "refund_reason",
