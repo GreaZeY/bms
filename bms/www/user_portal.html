@@ -1,0 +1,1030 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("BMS User Portal") }}{% endblock %}
+
+{% block page_content %}
+<div class="bms-user-portal">
+    <div class="page-header">
+        <h1><i class="fa fa-user-circle"></i> {{ _("BMS User Portal") }}</h1>
+        <p>{{ _("Manage your subscriptions, view invoices, and track payments") }}</p>
+    </div>
+
+    <div class="user-info-card">
+        <h3><i class="fa fa-user"></i> {{ _("User Information") }}</h3>
+        <div class="user-details">
+            <div class="user-info">
+                <p><strong>{{ _("Name") }}:</strong> <span id="userName">Loading...</span></p>
+                <p><strong>{{ _("Email") }}:</strong> <span id="userEmail">Loading...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="portalTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="plans-tab" data-bs-toggle="tab" data-bs-target="#plans" type="button"
+                role="tab">
+                <i class="fa fa-tags"></i> {{ _("Browse Plans") }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions"
+                type="button" role="tab">
+                <i class="fa fa-credit-card"></i> {{ _("My Subscriptions") }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button"
+                role="tab">
+                <i class="fa fa-file-text"></i> {{ _("Invoices") }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button"
+                role="tab">
+                <i class="fa fa-money"></i> {{ _("Payments") }}
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="portalTabContent">
+        <!-- Browse Plans Tab -->
+        <div class="tab-pane fade show active" id="plans" role="tabpanel">
+            <div class="bms-card">
+                <h4><i class="fa fa-tags"></i> {{ _("Available Plans") }}</h4>
+                <div id="plansLoading" class="bms-loading">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>{{ _("Loading available plans...") }}</p>
+                </div>
+                <div id="plansContainer" class="plan-grid" style="display: none;">
+                    <!-- Plans will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- My Subscriptions Tab -->
+        <div class="tab-pane fade" id="subscriptions" role="tabpanel">
+            <div class="bms-card">
+                <h4><i class="fa fa-credit-card"></i> {{ _("My Subscriptions") }}</h4>
+                <div id="subscriptionsLoading" class="bms-loading">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>{{ _("Loading your subscriptions...") }}</p>
+                </div>
+                <div id="subscriptionsContainer" style="display: none;">
+                    <!-- Subscriptions will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoices Tab -->
+        <div class="tab-pane fade" id="invoices" role="tabpanel">
+            <div class="bms-card">
+                <h4><i class="fa fa-file-text"></i> {{ _("My Invoices") }}</h4>
+                <div id="invoicesLoading" class="bms-loading">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>{{ _("Loading your invoices...") }}</p>
+                </div>
+                <div id="invoicesContainer" style="display: none;">
+                    <!-- Invoices will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div class="tab-pane fade" id="payments" role="tabpanel">
+            <div class="bms-card">
+                <h4><i class="fa fa-money"></i> {{ _("Payment History") }}</h4>
+                <div id="paymentsLoading" class="bms-loading">
+                    <i class="fa fa-spinner fa-spin"></i>
+                    <p>{{ _("Loading payment history...") }}</p>
+                </div>
+                <div id="paymentsContainer" style="display: none;">
+                    <!-- Payments will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block style %}
+<style>
+    .bms-user-portal {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #36414c;
+        font-size: 28px;
+        margin: 0;
+    }
+
+    .page-header p {
+        color: #6c7b7f;
+        margin: 5px 0 0 0;
+    }
+
+    .user-info-card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .user-info-card h3 {
+        margin: 0 0 15px 0;
+        color: #36414c;
+    }
+
+    .user-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .user-details .user-info {
+        flex: 1;
+    }
+
+    .user-details .user-info p {
+        margin: 5px 0;
+        color: #6c7b7f;
+    }
+
+    .user-details .user-info strong {
+        color: #36414c;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 30px;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #6c7b7f;
+        padding: 12px 20px;
+        font-weight: 500;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: #007bff;
+        color: #007bff;
+    }
+
+    .nav-tabs .nav-link.active {
+        border-bottom-color: #007bff;
+        color: #007bff;
+        background: none;
+    }
+
+    .tab-content {
+        min-height: 400px;
+    }
+
+    .bms-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .bms-card h4 {
+        margin: 0 0 15px 0;
+        color: #36414c;
+        font-size: 18px;
+    }
+
+    .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .plan-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .plan-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    }
+
+    .plan-card.featured {
+        border-color: #007bff;
+        border-width: 2px;
+    }
+
+    .plan-badge {
+        position: absolute;
+        top: -10px;
+        right: 20px;
+        background: #007bff;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .plan-name {
+        font-size: 24px;
+        font-weight: 600;
+        color: #36414c;
+        margin-bottom: 10px;
+    }
+
+    .plan-description {
+        color: #6c7b7f;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .plan-price {
+        margin-bottom: 25px;
+    }
+
+    .price-amount {
+        font-size: 36px;
+        font-weight: 700;
+        color: #007bff;
+        line-height: 1;
+    }
+
+    .price-currency {
+        font-size: 18px;
+        color: #6c7b7f;
+        vertical-align: top;
+    }
+
+    .price-period {
+        color: #6c7b7f;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+
+    .plan-features {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+        text-align: left;
+    }
+
+    .plan-features li {
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        color: #36414c;
+    }
+
+    .plan-features li:last-child {
+        border-bottom: none;
+    }
+
+    .plan-features li i {
+        color: #28a745;
+        margin-right: 10px;
+        width: 16px;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        border-color: #007bff;
+        padding: 10px 30px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .subscription-item {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .subscription-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .subscription-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #36414c;
+        margin: 0;
+    }
+
+    .subscription-status {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-trial {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .subscription-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .detail-item {
+        color: #6c7b7f;
+    }
+
+    .detail-item strong {
+        color: #36414c;
+    }
+
+    .subscription-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+        background: transparent;
+    }
+
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .bms-loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c7b7f;
+    }
+
+    .bms-loading i {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    .modal-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-title {
+        color: #36414c;
+        font-weight: 600;
+    }
+
+    .form-label {
+        color: #36414c;
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        padding: 8px 12px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .form-check-label {
+        color: #36414c;
+    }
+
+    @media (max-width: 768px) {
+        .bms-user-portal {
+            padding: 10px;
+        }
+
+        .plan-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .user-details {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .subscription-details {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block script %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    let currentUser = null;
+    let selectedPlan = null;
+
+    // Initialize portal on page load
+    $(document).ready(function () {
+        initializePortal();
+    });
+
+    function initializePortal() {
+        // Get current user info
+        getCurrentUser();
+
+        // Load initial data
+        loadPlans();
+
+        // Set up tab change handlers
+        $('#plans-tab').on('click', loadPlans);
+        $('#subscriptions-tab').on('click', loadSubscriptions);
+        $('#invoices-tab').on('click', loadInvoices);
+        $('#payments-tab').on('click', loadPayments);
+    }
+
+    function getCurrentUser() {
+        // Get current user from Frappe
+        currentUser = {
+            name: frappe.user.name,
+            email: frappe.user.email,
+            full_name: frappe.user.full_name,
+            customer_id: null // Will be set after getting customer record
+        };
+
+        $('#userName').text(currentUser.full_name || currentUser.name);
+        $('#userEmail').text(currentUser.email);
+
+        // Get customer record for this user
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_current_customer',
+            callback: function (r) {
+                if (r.message) {
+                    currentUser.customer_id = r.message.customer_id;
+                    currentUser.customer_name = r.message.customer_name;
+                }
+            }
+        });
+    }
+
+    function loadPlans() {
+        $('#plansLoading').show();
+        $('#plansContainer').hide();
+
+        // Use Frappe API to get available plans
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_user_plans',
+            args: {
+                customer_email: currentUser ? currentUser.email : null
+            },
+            callback: function (r) {
+                if (r.message) {
+                    renderPlans(r.message);
+                } else {
+                    showError('Failed to load available plans.');
+                }
+            },
+            error: function (err) {
+                showError('Error loading plans: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function renderPlans(plans) {
+        const container = $('#plansContainer');
+        container.empty();
+
+        if (plans.length === 0) {
+            container.html(`
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i>
+                    No plans available for your account.
+                </div>
+            `);
+        } else {
+            plans.forEach((plan, index) => {
+                const card = createPlanCard(plan, index);
+                container.append(card);
+            });
+        }
+
+        $('#plansLoading').hide();
+        container.show();
+    }
+
+    function createPlanCard(plan, index) {
+        const is_featured = index === 1; // Make second plan featured
+        const cardClass = is_featured ? 'plan-card featured' : 'plan-card';
+
+        return $(`
+            <div class="${cardClass}">
+                ${is_featured ? '<div class="plan-badge">Most Popular</div>' : ''}
+                <div class="plan-name">${plan.plan_name}</div>
+                <div class="plan-description">${plan.plan_description || 'Perfect for your business needs'}</div>
+                
+                <div class="plan-price">
+                    <div class="price-amount">
+                        <span class="price-currency">${plan.currency || '$'}</span>${plan.amount || '0'}
+                    </div>
+                    <div class="price-period">per ${plan.billing_cycle ? plan.billing_cycle.toLowerCase() : 'month'}</div>
+                </div>
+                
+                <ul class="plan-features">
+                    ${(plan.features || []).map(feature => `
+                        <li><i class="fa fa-check"></i> ${feature}</li>
+                    `).join('')}
+                </ul>
+                
+                <button class="btn btn-primary" onclick="selectPlan('${plan.name}')">
+                    <i class="fa fa-arrow-right"></i> Choose Plan
+                </button>
+            </div>
+        `);
+    }
+
+    function selectPlan(planId) {
+        // Find the selected plan from the loaded plans
+        const container = $('#plansContainer');
+        const planCards = container.find('.plan-card');
+        let selectedPlanData = null;
+
+        // Get plan data from the card
+        planCards.each(function () {
+            const card = $(this);
+            const button = card.find('button');
+            if (button.length && button.attr('onclick').includes(planId)) {
+                const planName = card.find('.plan-name').text();
+                const planDescription = card.find('.plan-description').text();
+                const priceAmount = card.find('.price-amount').text();
+                const pricePeriod = card.find('.price-period').text();
+
+                selectedPlanData = {
+                    name: planId,
+                    plan_name: planName,
+                    description: planDescription,
+                    price_display: priceAmount,
+                    period: pricePeriod
+                };
+            }
+        });
+
+        if (!selectedPlanData) {
+            showError('Plan not found. Please try again.');
+            return;
+        }
+
+        selectedPlan = selectedPlanData;
+
+        // Initiate Razorpay payment directly
+        initiateRazorpayPayment(selectedPlan);
+    }
+
+    function initiateRazorpayPayment(plan) {
+        // Extract amount from price display (remove currency symbol and convert to paise)
+        const amountText = plan.price_display.replace(/[^\d.]/g, '');
+        const amount = Math.round(parseFloat(amountText) * 100); // Convert to paise
+
+        // Create Razorpay order first
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.create_razorpay_order',
+            args: {
+                plan: plan.name,
+                customer_email: currentUser ? currentUser.email : null,
+                amount: amount,
+                currency: 'INR'
+            },
+            callback: function (r) {
+                if (r.message && r.message.order_id) {
+                    // Initialize Razorpay checkout
+                    const options = {
+                        key: r.message.key_id, // Your Razorpay key ID
+                        amount: amount,
+                        currency: 'INR',
+                        name: 'BMS Subscription',
+                        description: plan.plan_name,
+                        order_id: r.message.order_id,
+                        prefill: {
+                            name: currentUser.full_name || currentUser.name,
+                            email: currentUser.email,
+                            contact: currentUser.phone || ''
+                        },
+                        theme: {
+                            color: '#007bff'
+                        },
+                        handler: function (response) {
+                            // Payment successful
+                            handlePaymentSuccess(response, plan);
+                        },
+                        modal: {
+                            ondismiss: function () {
+                                showMessage('info', 'Payment cancelled by user');
+                            }
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                } else {
+                    showError('Failed to create payment order. Please try again.');
+                }
+            },
+            error: function (err) {
+                showError('Error initiating payment: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function handlePaymentSuccess(response, plan) {
+        // Verify payment and create subscription
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.verify_payment_and_create_subscription',
+            args: {
+                plan: plan.name,
+                customer_email: currentUser ? currentUser.email : null,
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+                payment_method: "Razorpay"
+            },
+            callback: function (r) {
+                if (r.message && r.message.status === 'success') {
+                    showMessage('success', 'Payment successful! Your subscription is now active.');
+                    // Refresh subscriptions
+                    setTimeout(() => {
+                        loadSubscriptions();
+                    }, 2000);
+                } else {
+                    showError(r.message ? r.message.message : 'Payment verification failed.');
+                }
+            },
+            error: function (err) {
+                showError('Error processing payment: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function loadSubscriptions() {
+        $('#subscriptionsLoading').show();
+        $('#subscriptionsContainer').hide();
+
+        // Use Frappe API to get user subscriptions
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_user_subscriptions',
+            args: {
+                customer_email: currentUser ? currentUser.email : null
+            },
+            callback: function (r) {
+                if (r.message) {
+                    renderSubscriptions(r.message);
+                } else {
+                    showError('Failed to load subscriptions.');
+                }
+            },
+            error: function (err) {
+                showError('Error loading subscriptions: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function renderSubscriptions(subscriptions) {
+        const container = $('#subscriptionsContainer');
+        container.empty();
+
+        if (subscriptions.length === 0) {
+            container.html(`
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i>
+                    You don't have any active subscriptions. Browse our plans to get started!
+                </div>
+            `);
+        } else {
+            subscriptions.forEach(subscription => {
+                const card = createSubscriptionCard(subscription);
+                container.append(card);
+            });
+        }
+
+        $('#subscriptionsLoading').hide();
+        container.show();
+    }
+
+    function createSubscriptionCard(subscription) {
+        const statusClass = `status-${subscription.status.toLowerCase()}`;
+
+        return $(`
+            <div class="subscription-item">
+                <div class="subscription-header">
+                    <h5 class="subscription-title">${subscription.plan_name}</h5>
+                    <span class="subscription-status ${statusClass}">${subscription.status}</span>
+                </div>
+                <div class="subscription-details">
+                    <div class="detail-item">
+                        <strong>Amount:</strong> $${subscription.amount}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Start Date:</strong> ${formatDate(subscription.start_date)}
+                    </div>
+                    <div class="detail-item">
+                        <strong>End Date:</strong> ${formatDate(subscription.end_date)}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Next Billing:</strong> ${formatDate(subscription.next_billing_date)}
+                    </div>
+                </div>
+                <div class="subscription-actions">
+                    <button class="btn btn-outline-danger btn-sm" onclick="cancelSubscription('${subscription.name}')">
+                        <i class="fa fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        `);
+    }
+
+    function cancelSubscription(subscriptionId) {
+        if (confirm('Are you sure you want to cancel this subscription?')) {
+            // Use Frappe API to cancel subscription
+            frappe.call({
+                method: 'bms.billing_management_system.api.user_portal.cancel_subscription',
+                args: {
+                    subscription: subscriptionId,
+                    reason: 'Cancelled by user via portal'
+                },
+                callback: function (r) {
+                    if (r.message && r.message.status === 'success') {
+                        showMessage('success', r.message.message);
+                        setTimeout(() => {
+                            loadSubscriptions();
+                        }, 2000);
+                    } else {
+                        showMessage('error', r.message ? r.message.message : 'Failed to cancel subscription.');
+                    }
+                },
+                error: function (err) {
+                    showMessage('error', 'Error cancelling subscription: ' + (err.message || 'Unknown error'));
+                }
+            });
+        }
+    }
+
+    function loadInvoices() {
+        $('#invoicesLoading').show();
+        $('#invoicesContainer').hide();
+
+        // Use Frappe API to get user invoices
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_user_invoices',
+            args: {
+                customer_email: currentUser ? currentUser.email : null
+            },
+            callback: function (r) {
+                if (r.message) {
+                    renderInvoices(r.message);
+                } else {
+                    showError('Failed to load invoices.');
+                }
+            },
+            error: function (err) {
+                showError('Error loading invoices: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function renderInvoices(invoices) {
+        const container = $('#invoicesContainer');
+        container.empty();
+
+        if (invoices.length === 0) {
+            container.html(`
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i>
+                    No invoices found.
+                </div>
+            `);
+        } else {
+            invoices.forEach(invoice => {
+                const card = createInvoiceCard(invoice);
+                container.append(card);
+            });
+        }
+
+        $('#invoicesLoading').hide();
+        container.show();
+    }
+
+    function createInvoiceCard(invoice) {
+        return $(`
+            <div class="subscription-item">
+                <div class="subscription-header">
+                    <h5 class="subscription-title">Invoice #${invoice.name}</h5>
+                    <span class="badge bg-success">${invoice.status}</span>
+                </div>
+                <div class="subscription-details">
+                    <div class="detail-item">
+                        <strong>Amount:</strong> $${invoice.amount}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Date:</strong> ${formatDate(invoice.invoice_date)}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Due Date:</strong> ${formatDate(invoice.due_date)}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Plan:</strong> ${invoice.plan}
+                    </div>
+                </div>
+                <div class="subscription-actions">
+                    <button class="btn btn-primary btn-sm" onclick="downloadInvoice('${invoice.name}')">
+                        <i class="fa fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+        `);
+    }
+
+    function loadPayments() {
+        $('#paymentsLoading').show();
+        $('#paymentsContainer').hide();
+
+        // Use Frappe API to get user payments
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.get_user_payments',
+            args: {
+                customer_email: currentUser ? currentUser.email : null
+            },
+            callback: function (r) {
+                if (r.message) {
+                    renderPayments(r.message);
+                } else {
+                    showError('Failed to load payments.');
+                }
+            },
+            error: function (err) {
+                showError('Error loading payments: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function renderPayments(payments) {
+        const container = $('#paymentsContainer');
+        container.empty();
+
+        if (payments.length === 0) {
+            container.html(`
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i>
+                    No payment history found.
+                </div>
+            `);
+        } else {
+            payments.forEach(payment => {
+                const card = createPaymentCard(payment);
+                container.append(card);
+            });
+        }
+
+        $('#paymentsLoading').hide();
+        container.show();
+    }
+
+    function createPaymentCard(payment) {
+        return $(`
+            <div class="subscription-item">
+                <div class="subscription-header">
+                    <h5 class="subscription-title">Payment #${payment.name}</h5>
+                    <span class="badge bg-success">${payment.status}</span>
+                </div>
+                <div class="subscription-details">
+                    <div class="detail-item">
+                        <strong>Amount:</strong> $${payment.amount}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Date:</strong> ${formatDate(payment.payment_date)}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Method:</strong> ${payment.payment_method}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Type:</strong> ${payment.payment_type}
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+
+    function downloadInvoice(invoiceId) {
+        // Use Frappe API to download invoice
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.download_invoice',
+            args: {
+                invoice: invoiceId
+            },
+            callback: function (r) {
+                if (r.message && r.message.status === 'success') {
+                    showMessage('success', 'Invoice download prepared');
+                    // In a real implementation, this would trigger the download
+                } else {
+                    showMessage('error', r.message ? r.message.message : 'Failed to download invoice.');
+                }
+            },
+            error: function (err) {
+                showMessage('error', 'Error downloading invoice: ' + (err.message || 'Unknown error'));
+            }
+        });
+    }
+
+    function showMessage(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = type === 'success' ? 'fa fa-check-circle' : 'fa fa-exclamation-triangle';
+
+        const alertDiv = $(`
+            <div class="alert ${alertClass}">
+                <i class="${icon}"></i> ${message}
+            </div>
+        `);
+
+        // Insert at the top of the tab content
+        $('#portalTabContent').prepend(alertDiv);
+
+        // Remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function showError(message) {
+        showMessage('error', message);
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+
+</script>
+{% endblock %}

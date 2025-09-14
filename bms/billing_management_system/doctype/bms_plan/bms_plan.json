@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:plan_name",
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+  "field_order": [
+   "plan_name",
+   "plan_description",
+   "plan_type",
+   "billing_cycle",
+   "amount",
+   "currency",
+   "trial_period_days",
+   "features",
+   "column_break_9",
+   "is_active",
+   "max_users",
+   "storage_limit_gb",
+   "api_calls_limit",
+   "support_level",
+   "auto_renewal",
+   "cancellation_policy",
+   "refund_policy",
+   "column_break_18",
+   "plan_visibility",
+   "target_customers"
+  ],
+ "fields": [
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Plan Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "plan_description",
+   "fieldtype": "Text",
+   "label": "Plan Description"
+  },
+  {
+   "fieldname": "plan_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Plan Type",
+   "options": "Basic\nStandard\nPremium\nEnterprise\nCustom",
+   "reqd": 1
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Billing Cycle",
+   "options": "Monthly\nQuarterly\nSemi-Annual\nAnnual\nOne-time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "trial_period_days",
+   "fieldtype": "Int",
+   "label": "Trial Period (Days)",
+   "default": "0"
+  },
+  {
+   "fieldname": "features",
+   "fieldtype": "Table",
+   "label": "Features",
+   "options": "BMS Plan Feature"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "max_users",
+   "fieldtype": "Int",
+   "label": "Max Users",
+   "default": "1"
+  },
+  {
+   "fieldname": "storage_limit_gb",
+   "fieldtype": "Int",
+   "label": "Storage Limit (GB)",
+   "default": "1"
+  },
+  {
+   "fieldname": "api_calls_limit",
+   "fieldtype": "Int",
+   "label": "API Calls Limit",
+   "default": "1000"
+  },
+  {
+   "fieldname": "support_level",
+   "fieldtype": "Select",
+   "label": "Support Level",
+   "options": "Basic\nStandard\nPremium\n24/7"
+  },
+  {
+   "fieldname": "auto_renewal",
+   "fieldtype": "Check",
+   "label": "Auto Renewal",
+   "default": "1"
+  },
+  {
+   "fieldname": "cancellation_policy",
+   "fieldtype": "Text",
+   "label": "Cancellation Policy"
+  },
+  {
+   "fieldname": "refund_policy",
+   "fieldtype": "Text",
+   "label": "Refund Policy"
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "plan_visibility",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Plan Visibility",
+   "options": "All Customers\nSpecific Customers",
+   "reqd": 1,
+   "default": "All Customers"
+  },
+  {
+   "fieldname": "target_customers",
+   "fieldtype": "Table",
+   "label": "Target Customers",
+   "options": "BMS Plan Customer",
+   "depends_on": "plan_visibility",
+   "mandatory_depends_on": "plan_visibility==Specific Customers"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "BMS Subscription",
+   "link_fieldname": "plan"
+  },
+  {
+   "link_doctype": "BMS Invoice",
+   "link_fieldname": "plan"
+  },
+  {
+   "link_doctype": "BMS Payment",
+   "link_fieldname": "plan"
+  }
+ ],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Billing Management System",
+ "name": "BMS Plan",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "BMS Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 0,
+   "export": 0,
+   "print": 0,
+   "read": 1,
+   "report": 0,
+   "role": "BMS User",
+   "share": 0,
+   "write": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

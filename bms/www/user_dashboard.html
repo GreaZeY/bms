@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>BMS User Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/assets/bms/css/bms.css">
+    <link rel="stylesheet" href="/assets/frappe/css/frappe.css">
+</head>
+
+<body>
+    <div class="bms-user-dashboard">
+        <div class="page-header">
+            <h1>My Billing Dashboard</h1>
+        </div>
+
+        <!-- Payment Summary -->
+        <div class="bms-card">
+            <h3>Payment Summary</h3>
+            <div id="payment-summary">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading payment summary...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Subscriptions -->
+        <div class="bms-card">
+            <h3>My Subscriptions</h3>
+            <div id="my-subscriptions">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading subscriptions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Payments -->
+        <div class="bms-card">
+            <h3>Recent Payments</h3>
+            <div id="recent-payments">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading payments...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Invoices -->
+        <div class="bms-card">
+            <h3>Recent Invoices</h3>
+            <div id="recent-invoices">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading invoices...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bms-card">
+            <h3>Quick Actions</h3>
+            <div class="bms-action-buttons">
+                <button class="btn btn-primary" onclick="view_available_plans()">
+                    <i class="fa fa-shopping-cart"></i> View Available Plans
+                </button>
+                <button class="btn btn-info" onclick="view_all_subscriptions()">
+                    <i class="fa fa-list"></i> View All Subscriptions
+                </button>
+                <button class="btn btn-success" onclick="view_all_payments()">
+                    <i class="fa fa-credit-card"></i> View Payment History
+                </button>
+                <button class="btn btn-warning" onclick="view_all_invoices()">
+                    <i class="fa fa-file-invoice"></i> View All Invoices
+                </button>
+                <button class="btn btn-secondary" onclick="contact_support()">
+                    <i class="fa fa-support"></i> Contact Support
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/frappe/js/frappe.js"></script>
+    <script src="/assets/bms/js/bms.js"></script>
+    <script>
+        // Load dashboard data
+        frappe.ready(function () {
+            load_user_dashboard();
+        });
+
+        function load_user_dashboard() {
+            frappe.call({
+                method: "bms.billing_management_system.api.dashboard.get_dashboard_data",
+                callback: function (r) {
+                    if (r.message && r.message.status === "success") {
+                        update_user_dashboard(r.message.data);
+                    } else {
+                        show_error("Error loading dashboard data");
+                    }
+                }
+            });
+        }
+
+        function update_user_dashboard(data) {
+            // Update payment summary
+            update_payment_summary(data.payment_summary);
+
+            // Update subscriptions
+            update_my_subscriptions(data.subscriptions);
+
+            // Update recent payments
+            update_recent_payments(data.payments);
+
+            // Update recent invoices
+            update_recent_invoices(data.invoices);
+        }
+
+        function update_payment_summary(summary) {
+            const container = document.getElementById('payment-summary');
+
+            if (!summary) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-info-circle"></i><p>No payment data available</p></div>';
+                return;
+            }
+
+            const html = `
+                <div class="payment-summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-label">Total Paid</div>
+                        <div class="summary-value bms-amount">${format_currency(summary.total_paid)}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Total Refunded</div>
+                        <div class="summary-value bms-amount negative">${format_currency(summary.total_refunded)}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Net Amount</div>
+                        <div class="summary-value bms-amount">${format_currency(summary.net_amount)}</div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function update_my_subscriptions(subscriptions) {
+            const container = document.getElementById('my-subscriptions');
+
+            if (!subscriptions || subscriptions.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-info-circle"></i><p>No subscriptions found</p></div>';
+                return;
+            }
+
+            let html = '<div class="subscription-list">';
+            subscriptions.forEach(function (subscription) {
+                html += `
+                    <div class="bms-user-subscription">
+                        <h4>${subscription.plan}</h4>
+                        <div class="bms-subscription-details">
+                            <div class="bms-detail-item">
+                                <span class="bms-detail-label">Status:</span>
+                                <span class="bms-detail-value">
+                                    <span class="bms-status-badge status-${subscription.status.toLowerCase()}">${subscription.status}</span>
+                                </span>
+                            </div>
+                            <div class="bms-detail-item">
+                                <span class="bms-detail-label">Amount:</span>
+                                <span class="bms-detail-value bms-amount">${format_currency(subscription.amount)}</span>
+                            </div>
+                            <div class="bms-detail-item">
+                                <span class="bms-detail-label">Billing Cycle:</span>
+                                <span class="bms-detail-value">${subscription.billing_cycle}</span>
+                            </div>
+                            <div class="bms-detail-item">
+                                <span class="bms-detail-label">Start Date:</span>
+                                <span class="bms-detail-value bms-date">${format_date_safe(subscription.start_date)}</span>
+                            </div>
+                            <div class="bms-detail-item">
+                                <span class="bms-detail-label">End Date:</span>
+                                <span class="bms-detail-value bms-date">${format_date_safe(subscription.end_date)}</span>
+                            </div>
+                        </div>
+                        <div class="bms-action-buttons">
+                            ${subscription.status === 'Active' ? `
+                                <button class="btn btn-warning bms-cancel-button" onclick="cancel_subscription('${subscription.name}')">
+                                    <i class="fa fa-times"></i> Cancel
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-info" onclick="view_subscription('${subscription.name}')">
+                                <i class="fa fa-eye"></i> View Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function update_recent_payments(payments) {
+            const container = document.getElementById('recent-payments');
+
+            if (!payments || payments.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-info-circle"></i><p>No payments found</p></div>';
+                return;
+            }
+
+            let html = '<div class="payment-list">';
+            payments.forEach(function (payment) {
+                html += `
+                    <div class="payment-item">
+                        <div class="payment-details">
+                            <div class="payment-amount ${payment.payment_type === 'Refund' ? 'bms-amount negative' : 'bms-amount'}">
+                                ${payment.payment_type === 'Refund' ? '-' : ''}${format_currency(payment.amount)}
+                            </div>
+                            <div class="payment-info">
+                                <div class="payment-type">${payment.payment_type}</div>
+                                <div class="payment-date bms-date">${format_date_safe(payment.payment_date)}</div>
+                            </div>
+                        </div>
+                        <div class="payment-status">
+                            <span class="bms-status-badge status-${payment.status.toLowerCase()}">${payment.status}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function update_recent_invoices(invoices) {
+            const container = document.getElementById('recent-invoices');
+
+            if (!invoices || invoices.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-info-circle"></i><p>No invoices found</p></div>';
+                return;
+            }
+
+            let html = '<div class="invoice-list">';
+            invoices.forEach(function (invoice) {
+                html += `
+                    <div class="invoice-item">
+                        <div class="invoice-details">
+                            <div class="invoice-number">${invoice.name}</div>
+                            <div class="invoice-amount bms-amount">${format_currency(invoice.amount)}</div>
+                            <div class="invoice-date bms-date">${format_date_safe(invoice.invoice_date)}</div>
+                        </div>
+                        <div class="invoice-actions">
+                            <span class="bms-status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
+                            <button class="btn btn-sm bms-download-button" onclick="download_invoice('${invoice.name}')">
+                                <i class="fa fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function cancel_subscription(subscription_name) {
+            frappe.prompt([
+                {
+                    "fieldtype": "Text",
+                    "label": "Cancellation Reason",
+                    "fieldname": "reason",
+                    "reqd": 1
+                }
+            ], function (values) {
+                frappe.call({
+                    method: "bms.billing_management_system.api.subscription.cancel_subscription",
+                    args: {
+                        subscription: subscription_name,
+                        reason: values.reason
+                    },
+                    callback: function (r) {
+                        if (r.message && r.message.status === "success") {
+                            show_success("Subscription cancelled successfully");
+                            load_user_dashboard(); // Reload dashboard
+                        } else {
+                            show_error("Error cancelling subscription: " + (r.message.message || "Unknown error"));
+                        }
+                    }
+                });
+            }, "Cancel Subscription", "Cancel");
+        }
+
+        function view_subscription(subscription_name) {
+            frappe.set_route('Form', 'BMS Subscription', subscription_name);
+        }
+
+        function download_invoice(invoice_name) {
+            frappe.call({
+                method: "bms.billing_management_system.api.invoice.download_invoice",
+                args: {
+                    invoice: invoice_name
+                },
+                callback: function (r) {
+                    if (r.message && r.message.status === "success") {
+                        // Create download link
+                        const link = document.createElement('a');
+                        link.href = 'data:application/pdf;base64,' + r.message.pdf_content;
+                        link.download = r.message.filename;
+                        link.click();
+
+                        show_success("Invoice downloaded successfully");
+                    } else {
+                        show_error("Error downloading invoice: " + (r.message.message || "Unknown error"));
+                    }
+                }
+            });
+        }
+
+        function view_available_plans() {
+            window.open('/plans', '_blank');
+        }
+
+        function view_all_subscriptions() {
+            frappe.set_route('List', 'BMS Subscription');
+        }
+
+        function view_all_payments() {
+            frappe.set_route('List', 'BMS Payment');
+        }
+
+        function view_all_invoices() {
+            frappe.set_route('List', 'BMS Invoice');
+        }
+
+        function contact_support() {
+            frappe.msgprint("Please contact support at support@bms.com or call +1-800-BMS-HELP");
+        }
+
+        function format_date_safe(date) {
+            if (!date) return '';
+
+            try {
+                // Handle different date formats
+                let dateObj;
+                if (typeof date === 'string') {
+                    // Handle DD/MM/YYYY format
+                    if (date.includes('/')) {
+                        const parts = date.split('/');
+                        if (parts.length === 3) {
+                            // Convert DD/MM/YYYY to YYYY-MM-DD
+                            date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                    dateObj = new Date(date);
+                } else {
+                    dateObj = date;
+                }
+
+                if (isNaN(dateObj.getTime())) {
+                    return date; // Return original if invalid
+                }
+
+                return dateObj.toLocaleDateString();
+            } catch (e) {
+                return date; // Return original if error
+            }
+        }
+    </script>
+</body>
+
+</html>

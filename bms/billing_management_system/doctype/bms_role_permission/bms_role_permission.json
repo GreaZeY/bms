@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "doctype",
+  "permission_type",
+  "allowed"
+ ],
+ "fields": [
+  {
+   "fieldname": "doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "DocType",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "permission_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Permission Type",
+   "options": "Read\nWrite\nCreate\nDelete\nSubmit\nCancel\nAmend\nReport\nExport\nImport\nPrint\nEmail\nShare",
+   "reqd": 1
+  },
+  {
+   "fieldname": "allowed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Allowed",
+   "default": "0"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Billing Management System",
+ "name": "BMS Role Permission",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

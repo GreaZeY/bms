@@ -11,22 +11,22 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "bms",
-# 		"logo": "/assets/bms/logo.png",
-# 		"title": "Billing Management System",
-# 		"route": "/bms",
-# 		"has_permission": "bms.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "bms",
+		"logo": "/assets/bms/images/bms.png",
+		"title": "Billing Management System",
+		"route": "/app/billing",
+		# "has_permission": "bms.api.permission.has_app_permission"
+	}
+]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/bms/css/bms.css"
-# app_include_js = "/assets/bms/js/bms.js"
+app_include_css = "/assets/bms/css/bms.css"
+app_include_js = "/assets/bms/js/bms.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/bms/css/bms.css"
@@ -43,10 +43,18 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+doctype_js = {
+	"BMS Subscription": "billing_management_system/doctype/bms_subscription/bms_subscription.js",
+	"BMS Payment": "billing_management_system/doctype/bms_payment/bms_payment.js",
+	"BMS Invoice": "billing_management_system/doctype/bms_invoice/bms_invoice.js",
+	"BMS Plan": "billing_management_system/doctype/bms_plan/bms_plan.js"
+}
+
+doctype_list_js = {
+	"BMS Subscription": "billing_management_system/doctype/bms_subscription/bms_subscription_list.js",
+	"BMS Payment": "billing_management_system/doctype/bms_payment/bms_payment_list.js",
+	"BMS Plan": "billing_management_system/doctype/bms_plan/bms_plan_list.js"
+}
 
 # Svg Icons
 # ------------------
@@ -85,8 +93,7 @@ app_license = "mit"
 # Installation
 # ------------
 
-# before_install = "bms.install.before_install"
-# after_install = "bms.install.after_install"
+after_install = "bms.install.after_install"
 
 # Uninstallation
 # ------------
@@ -120,13 +127,17 @@ app_license = "mit"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"BMS Subscription": "bms.billing_management_system.permissions.get_subscription_permission_query_conditions",
+	"BMS Invoice": "bms.billing_management_system.permissions.get_invoice_permission_query_conditions",
+	"BMS Payment": "bms.billing_management_system.permissions.get_payment_permission_query_conditions"
+}
+
+has_permission = {
+	"BMS Subscription": "bms.billing_management_system.permissions.has_subscription_permission",
+	"BMS Invoice": "bms.billing_management_system.permissions.has_invoice_permission",
+	"BMS Payment": "bms.billing_management_system.permissions.has_payment_permission"
+}
 
 # Document Events
 # ---------------
@@ -143,23 +154,14 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"bms.tasks.all"
-# 	],
-# 	"daily": [
-# 		"bms.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"bms.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"bms.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"bms.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"bms.billing_management_system.tasks.daily_tasks"
+	],
+	"monthly": [
+		"bms.billing_management_system.tasks.monthly_tasks"
+	],
+}
 
 # Testing
 # -------
@@ -236,4 +238,5 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
+# fixtures = ["Workspace"]
 

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>BMS Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/assets/bms/css/bms.css">
+    <link rel="stylesheet" href="/assets/frappe/css/frappe.css">
+</head>
+
+<body>
+    <div class="bms-dashboard">
+        <div class="page-header">
+            <h1>Billing Management System - Admin Dashboard</h1>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="bms-stats">
+            <div class="bms-stat-card">
+                <h4>Total Subscriptions</h4>
+                <p class="stat-value" id="total-subscriptions">0</p>
+            </div>
+            <div class="bms-stat-card">
+                <h4>Active Subscriptions</h4>
+                <p class="stat-value" id="active-subscriptions">0</p>
+            </div>
+            <div class="bms-stat-card">
+                <h4>Total Revenue</h4>
+                <p class="stat-value" id="total-revenue">$0</p>
+            </div>
+            <div class="bms-stat-card">
+                <h4>Monthly Revenue</h4>
+                <p class="stat-value" id="monthly-revenue">$0</p>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bms-card">
+            <h3>Recent Activities</h3>
+            <div id="recent-activities">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading activities...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Renewals -->
+        <div class="bms-card">
+            <h3>Upcoming Renewals</h3>
+            <div id="upcoming-renewals">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading renewals...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Invoices -->
+        <div class="bms-card">
+            <h3>Overdue Invoices</h3>
+            <div id="overdue-invoices">
+                <div class="bms-loading">
+                    <i class="fa fa-spinner"></i>
+                    <p>Loading invoices...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bms-card">
+            <h3>Quick Actions</h3>
+            <div class="bms-action-buttons">
+                <button class="btn btn-primary" onclick="create_subscription()">
+                    <i class="fa fa-plus"></i> Create Subscription
+                </button>
+                <button class="btn btn-success" onclick="create_plan()">
+                    <i class="fa fa-plus"></i> Create Plan
+                </button>
+                <button class="btn btn-info" onclick="create_customer()">
+                    <i class="fa fa-plus"></i> Create Customer
+                </button>
+                <button class="btn btn-warning" onclick="view_reports()">
+                    <i class="fa fa-chart-bar"></i> View Reports
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/frappe/js/frappe.js"></script>
+    <script src="/assets/bms/js/bms.js"></script>
+    <script>
+        // Load dashboard data
+        frappe.ready(function () {
+            load_admin_dashboard();
+        });
+
+        function load_admin_dashboard() {
+            frappe.call({
+                method: "bms.billing_management_system.api.dashboard.get_dashboard_data",
+                callback: function (r) {
+                    if (r.message && r.message.status === "success") {
+                        update_admin_dashboard(r.message.data);
+                    } else {
+                        show_error("Error loading dashboard data");
+                    }
+                }
+            });
+        }
+
+        function update_admin_dashboard(data) {
+            // Update statistics
+            if (data.subscriptions) {
+                document.getElementById('total-subscriptions').textContent = data.subscriptions.total;
+                document.getElementById('active-subscriptions').textContent = data.subscriptions.active;
+            }
+
+            if (data.revenue) {
+                document.getElementById('total-revenue').textContent = format_currency(data.revenue.total);
+                document.getElementById('monthly-revenue').textContent = format_currency(data.revenue.monthly);
+            }
+
+            // Update recent activities
+            update_recent_activities(data.recent_activities);
+
+            // Update upcoming renewals
+            update_upcoming_renewals(data.upcoming_renewals);
+
+            // Update overdue invoices
+            update_overdue_invoices(data.overdue_invoices);
+        }
+
+        function update_recent_activities(activities) {
+            const container = document.getElementById('recent-activities');
+
+            if (!activities || activities.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-info-circle"></i><p>No recent activities</p></div>';
+                return;
+            }
+
+            let html = '<div class="activity-list">';
+            activities.forEach(function (activity) {
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-description">${activity.description}</div>
+                        <div class="activity-date">${format_date_safe(activity.date)}</div>
+                        <div class="activity-status">
+                            <span class="bms-status-badge status-${activity.status.toLowerCase()}">${activity.status}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function update_upcoming_renewals(renewals) {
+            const container = document.getElementById('upcoming-renewals');
+
+            if (!renewals || renewals.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-check-circle"></i><p>No upcoming renewals</p></div>';
+                return;
+            }
+
+            let html = '<div class="renewal-list">';
+            renewals.forEach(function (renewal) {
+                html += `
+                    <div class="renewal-item">
+                        <div class="renewal-details">
+                            <strong>${renewal.customer}</strong> - ${renewal.plan}
+                            <br>
+                            <small>Amount: ${format_currency(renewal.amount)}</small>
+                        </div>
+                        <div class="renewal-date">${format_date_safe(renewal.next_billing_date)}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function update_overdue_invoices(invoices) {
+            const container = document.getElementById('overdue-invoices');
+
+            if (!invoices || invoices.length === 0) {
+                container.innerHTML = '<div class="bms-no-data"><i class="fa fa-check-circle"></i><p>No overdue invoices</p></div>';
+                return;
+            }
+
+            let html = '<div class="invoice-list">';
+            invoices.forEach(function (invoice) {
+                html += `
+                    <div class="invoice-item">
+                        <div class="invoice-details">
+                            <strong>${invoice.customer}</strong> - ${invoice.name}
+                            <br>
+                            <small>Amount: ${format_currency(invoice.amount)}</small>
+                        </div>
+                        <div class="invoice-date">Due: ${format_date_safe(invoice.due_date)}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function create_subscription() {
+            frappe.set_route('Form', 'BMS Subscription', 'new');
+        }
+
+        function create_plan() {
+            frappe.set_route('Form', 'BMS Plan', 'new');
+        }
+
+        function create_customer() {
+            frappe.set_route('Form', 'BMS Customer', 'new');
+        }
+
+        function view_reports() {
+            frappe.set_route('List', 'BMS Subscription');
+        }
+
+        function format_date_safe(date) {
+            if (!date) return '';
+
+            try {
+                // Handle different date formats
+                let dateObj;
+                if (typeof date === 'string') {
+                    // Handle DD/MM/YYYY format
+                    if (date.includes('/')) {
+                        const parts = date.split('/');
+                        if (parts.length === 3) {
+                            // Convert DD/MM/YYYY to YYYY-MM-DD
+                            date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                    dateObj = new Date(date);
+                } else {
+                    dateObj = date;
+                }
+
+                if (isNaN(dateObj.getTime())) {
+                    return date; // Return original if invalid
+                }
+
+                return dateObj.toLocaleDateString();
+            } catch (e) {
+                return date; // Return original if error
+            }
+        }
+    </script>
+</body>
+
+</html>

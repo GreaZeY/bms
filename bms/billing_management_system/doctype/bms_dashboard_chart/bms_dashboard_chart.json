@@ -1,0 +1,62 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-01-01 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "chart_name",
+  "chart_title",
+  "chart_type",
+  "data_source",
+  "position"
+ ],
+ "fields": [
+  {
+   "fieldname": "chart_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Chart Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chart_title",
+   "fieldtype": "Data",
+   "label": "Chart Title"
+  },
+  {
+   "fieldname": "chart_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Chart Type",
+   "options": "Bar\nLine\nPie\nDoughnut\nArea\nScatter",
+   "reqd": 1
+  },
+  {
+   "fieldname": "data_source",
+   "fieldtype": "Select",
+   "label": "Data Source",
+   "options": "Subscription Statistics\nRevenue Statistics\nPayment Statistics\nCustomer Statistics"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Int",
+   "label": "Position",
+   "default": "1"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Billing Management System",
+ "name": "BMS Dashboard Chart",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
