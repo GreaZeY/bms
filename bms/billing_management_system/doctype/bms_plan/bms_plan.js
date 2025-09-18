@@ -32,26 +32,6 @@ frappe.ui.form.on('BMS Plan', {
 		}
 	},
 	
-	max_users: function(frm) {
-		// Validate max users
-		if (frm.doc.max_users && frm.doc.max_users <= 0) {
-			frappe.msgprint(__("Max users must be greater than 0"));
-		}
-	},
-	
-	storage_limit_gb: function(frm) {
-		// Validate storage limit
-		if (frm.doc.storage_limit_gb && frm.doc.storage_limit_gb <= 0) {
-			frappe.msgprint(__("Storage limit must be greater than 0"));
-		}
-	},
-	
-	api_calls_limit: function(frm) {
-		// Validate API calls limit
-		if (frm.doc.api_calls_limit && frm.doc.api_calls_limit <= 0) {
-			frappe.msgprint(__("API calls limit must be greater than 0"));
-		}
-	},
 	
 	plan_visibility: function(frm) {
 		// Show/hide target customers field based on plan visibility

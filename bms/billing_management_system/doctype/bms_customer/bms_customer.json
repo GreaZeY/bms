@@ -1,14 +1,13 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "naming_series:",
- "creation": "2024-01-01 00:00:00.000000",
+ "autoname": "field:email",
+ "creation": "2024-01-01 00:00:00",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "naming_series",
   "customer_name",
   "customer_type",
   "email",
@@ -26,18 +25,9 @@
   "razorpay_customer_id",
   "column_break_15",
   "created_by",
-  "creation_date",
-  "modified_by",
-  "modified_date"
+  "creation_date"
  ],
  "fields": [
-  {
-   "fieldname": "naming_series",
-   "fieldtype": "Select",
-   "label": "Naming Series",
-   "options": "CUST-.YYYY.-.MM.-.#####",
-   "reqd": 1
-  },
   {
    "fieldname": "customer_name",
    "fieldtype": "Data",
@@ -59,7 +49,8 @@
    "in_list_view": 1,
    "label": "Email",
    "options": "Email",
-   "reqd": 1
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "phone",
@@ -68,17 +59,17 @@
    "options": "Phone"
   },
   {
+   "depends_on": "customer_type",
    "fieldname": "company_name",
    "fieldtype": "Data",
    "label": "Company Name",
-   "depends_on": "customer_type",
    "mandatory_depends_on": "customer_type==Company"
   },
   {
+   "depends_on": "customer_type",
    "fieldname": "contact_person",
    "fieldtype": "Data",
    "label": "Contact Person",
-   "depends_on": "customer_type",
    "mandatory_depends_on": "customer_type==Company"
   },
   {
@@ -128,9 +119,9 @@
   {
    "fieldname": "razorpay_customer_id",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Razorpay Customer ID",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_15",
@@ -147,19 +138,6 @@
    "fieldname": "creation_date",
    "fieldtype": "Datetime",
    "label": "Creation Date",
-   "read_only": 1
-  },
-  {
-   "fieldname": "modified_by",
-   "fieldtype": "Link",
-   "label": "Modified By",
-   "options": "User",
-   "read_only": 1
-  },
-  {
-   "fieldname": "modified_date",
-   "fieldtype": "Datetime",
-   "label": "Modified Date",
    "read_only": 1
   }
  ],
@@ -178,7 +156,7 @@
    "link_fieldname": "customer"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2025-09-15 14:23:01.376194",
  "modified_by": "Administrator",
  "module": "Billing Management System",
  "name": "BMS Customer",
@@ -198,18 +176,11 @@
    "write": 1
   },
   {
-   "create": 0,
-   "delete": 0,
-   "email": 0,
-   "export": 0,
-   "print": 0,
    "read": 1,
-   "report": 0,
-   "role": "BMS User",
-   "share": 0,
-   "write": 0
+   "role": "BMS User"
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

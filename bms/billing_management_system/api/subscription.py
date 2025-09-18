@@ -58,6 +58,46 @@ def cancel_subscription(subscription, reason=None):
 		}
 
 @frappe.whitelist()
+def reactivate_subscription(subscription):
+	"""Reactivate a cancelled (active) subscription"""
+	try:
+		subscription_doc = frappe.get_doc("BMS Subscription", subscription)
+		subscription_doc.reactivate_subscription()
+		
+		return {
+			"status": "success",
+			"message": _("Subscription reactivated successfully")
+		}
+		
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "BMS Subscription Reactivation Error")
+		return {
+			"status": "error",
+			"message": str(e)
+		}
+
+@frappe.whitelist()
+def toggle_auto_renewal(subscription, enable=1):
+	"""Toggle auto-renewal for a subscription"""
+	try:
+		subscription_doc = frappe.get_doc("BMS Subscription", subscription)
+		# Convert to boolean - handle both string and integer inputs
+		enable_bool = str(enable) in ['1', 'true', 'True', True] or enable == 1
+		subscription_doc.toggle_auto_renewal(enable_bool)
+		
+		return {
+			"status": "success",
+			"message": _("Auto-renewal setting updated successfully")
+		}
+		
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "BMS Auto-Renewal Toggle Error")
+		return {
+			"status": "error",
+			"message": str(e)
+		}
+
+@frappe.whitelist()
 def renew_subscription(subscription):
 	"""Renew a subscription"""
 	try:

@@ -6,7 +6,6 @@ class BMSPlan(Document):
 	def validate(self):
 		self.validate_amount()
 		self.validate_trial_period()
-		self.validate_limits()
 		self.validate_target_customers()
 	
 	def validate_amount(self):
@@ -19,14 +18,6 @@ class BMSPlan(Document):
 		if self.trial_period_days < 0:
 			frappe.throw(_("Trial period cannot be negative"))
 	
-	def validate_limits(self):
-		"""Validate plan limits"""
-		if self.max_users <= 0:
-			frappe.throw(_("Max users must be greater than 0"))
-		if self.storage_limit_gb <= 0:
-			frappe.throw(_("Storage limit must be greater than 0"))
-		if self.api_calls_limit <= 0:
-			frappe.throw(_("API calls limit must be greater than 0"))
 	
 	def on_update(self):
 		"""Update related subscriptions when plan is updated"""

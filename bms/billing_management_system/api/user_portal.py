@@ -14,6 +14,43 @@ except ImportError:
     RAZORPAY_AVAILABLE = False
     razorpay = None
 
+def get_currency_conversion_rate(from_currency, to_currency):
+	"""Get currency conversion rate - for now return 1:1 for same currency or basic USD to INR"""
+	if from_currency == to_currency:
+		return 1.0
+	
+	# Basic conversion rates - in production, use a real currency API
+	conversion_rates = {
+		"USD_INR": 83.0,  # 1 USD = 83 INR (approximate)
+		"INR_USD": 0.012,  # 1 INR = 0.012 USD (approximate)
+	}
+	
+	rate_key = f"{from_currency}_{to_currency}"
+	return conversion_rates.get(rate_key, 1.0)
+
+def convert_currency_amount(amount, from_currency, to_currency):
+	"""Convert amount from one currency to another"""
+	if from_currency == to_currency:
+		return amount
+	
+	rate = get_currency_conversion_rate(from_currency, to_currency)
+	return round(amount * rate, 2)
+
+def get_razorpay_currency_for_plan(plan_doc):
+	"""Determine the appropriate currency for Razorpay based on plan currency"""
+	# Razorpay supports multiple currencies, but INR is most common
+	# For USD plans, we can use USD if Razorpay account supports it
+	# Otherwise, convert to INR
+	
+	# Check if plan currency is supported by Razorpay
+	razorpay_supported_currencies = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "SGD"]
+	
+	if plan_doc.currency in razorpay_supported_currencies:
+		return plan_doc.currency
+	else:
+		# Default to INR if currency not supported
+		return "INR"
+
 def get_customer_for_user(user_email=None):
 	"""Helper function to get BMS Customer record for a user"""
 	if not user_email:
@@ -77,14 +114,15 @@ def get_user_plans(customer_email=None):
 	for plan in all_plans:
 		plan_doc = frappe.get_doc("BMS Plan", plan.name)
 		if plan_doc.is_available_for_customer(customer_id):
-			# Check if customer has active subscription for this plan
-			active_subscription = frappe.get_all("BMS Subscription",
+			# Check if customer has any subscription for this plan
+			existing_subscription = frappe.get_all("BMS Subscription",
 				filters={
 					"customer": customer_id,
 					"plan": plan.name,
-					"status": ["in", ["Active", "Trial"]]
+					"status": ["in", ["Active", "Trial", "Cancelled"]]
 				},
-				fields=["name", "status", "start_date", "end_date", "next_billing_date"],
+				fields=["name", "status", "start_date", "end_date", "next_billing_date", "auto_renewal"],
+				order_by="creation desc",
 				limit=1
 			)
 			
@@ -100,12 +138,24 @@ def get_user_plans(customer_email=None):
 			
 			plan.features = [f.strip() for f in features if f.strip()]
 			
-			# Add subscription status
-			if active_subscription:
-				plan.has_active_subscription = True
-				plan.subscription = active_subscription[0]
+			# Add subscription status information
+			if existing_subscription:
+				subscription_data = existing_subscription[0]
+				plan.has_active_subscription = subscription_data.status in ["Active", "Trial"]
+				plan.has_cancelled_subscription = subscription_data.status == "Cancelled"
+				plan.subscription = subscription_data
+				
+				# Check if cancelled subscription can be reactivated (not expired)
+				if plan.has_cancelled_subscription:
+					today_date = frappe.utils.getdate(frappe.utils.today())
+					end_date = frappe.utils.getdate(subscription_data.end_date)
+					plan.can_reactivate = today_date <= end_date
+				else:
+					plan.can_reactivate = False
 			else:
 				plan.has_active_subscription = False
+				plan.has_cancelled_subscription = False
+				plan.can_reactivate = False
 				plan.subscription = None
 			
 			available_plans.append(plan)
@@ -322,21 +372,32 @@ def cancel_subscription(subscription, reason=None):
 	if subscription_doc.customer != user_customer:
 		frappe.throw(_("You don't have permission to cancel this subscription"))
 	
-	if subscription_doc.status in ["Cancelled", "Expired"]:
-		frappe.throw(_("Subscription is already cancelled or expired"))
-	
-	subscription_doc.status = "Cancelled"
-	subscription_doc.cancellation_date = today()
-	subscription_doc.cancellation_reason = reason or "Cancelled by user"
-	subscription_doc.auto_renewal = 0
-	subscription_doc.save(ignore_permissions=True)
-	
-	# Create refund request if applicable
-	subscription_doc.create_refund_request()
+	# Use the new graceful cancellation method
+	subscription_doc.cancel_subscription(reason)
 	
 	return {
 		"status": "success",
 		"message": "Subscription cancelled successfully"
+	}
+
+@frappe.whitelist()
+def reactivate_subscription(subscription, customer_email=None):
+	"""Reactivate a cancelled subscription"""
+	if not customer_email:
+		customer_email = frappe.session.user
+	
+	subscription_doc = frappe.get_doc("BMS Subscription", subscription)
+	
+	# Check if user has permission to reactivate this subscription
+	user_customer = get_customer_for_user(customer_email)
+	if subscription_doc.customer != user_customer:
+		frappe.throw(_("You don't have permission to reactivate this subscription"))
+	
+	subscription_doc.reactivate_subscription()
+	
+	return {
+		"status": "success",
+		"message": "Subscription reactivated successfully"
 	}
 
 @frappe.whitelist()
@@ -448,7 +509,7 @@ def get_user_dashboard_data(customer_email=None):
 	}
 
 @frappe.whitelist()
-def create_razorpay_subscription(plan, customer_email=None, currency="INR"):
+def create_razorpay_subscription(plan, customer_email=None, currency=None):
 	"""Create a Razorpay subscription for recurring billing"""
 	try:
 		frappe.log_error(f"Starting create_razorpay_subscription with plan: {plan}, customer_email: {customer_email}")
@@ -482,6 +543,10 @@ def create_razorpay_subscription(plan, customer_email=None, currency="INR"):
 		plan_doc = frappe.get_doc("BMS Plan", plan)
 		frappe.log_error(f"Plan doc loaded: {plan_doc.plan_name}, amount: {plan_doc.amount}")
 		
+		# Use plan's currency if not provided, but ensure it's supported by Razorpay
+		if not currency:
+			currency = get_razorpay_currency_for_plan(plan_doc)
+		
 		# Check if plan is available for customer
 		if not plan_doc.is_available_for_customer(customer):
 			frappe.throw(_("This plan is not available for you"))
@@ -498,6 +563,9 @@ def create_razorpay_subscription(plan, customer_email=None, currency="INR"):
 		
 		# Create or get Razorpay plan
 		razorpay_plan_id = create_or_get_razorpay_plan(client, plan_doc, currency)
+		
+		# Calculate converted amount for response
+		converted_amount = convert_currency_amount(plan_doc.amount, plan_doc.currency, currency)
 		
 		# Create Razorpay customer if not exists
 		razorpay_customer_id = create_or_get_razorpay_customer(client, customer_doc)
@@ -538,8 +606,11 @@ def create_razorpay_subscription(plan, customer_email=None, currency="INR"):
 				"key_id": razorpay_key_id,
 				"plan_id": razorpay_plan_id,
 				"customer_id": razorpay_customer_id,
-				"amount": plan_doc.amount * 100,  # Amount in paise
-				"currency": currency,
+				"amount": int(float(converted_amount) * 100),  # Amount in smallest currency unit (converted)
+				"display_amount": converted_amount,  # Converted amount for display
+				"original_amount": plan_doc.amount,  # Original plan amount
+				"currency": currency,  # Target currency (for Razorpay)
+				"original_currency": plan_doc.currency,  # Plan's original currency
 				"short_url": subscription.get("short_url")
 			}
 		}
@@ -549,9 +620,13 @@ def create_razorpay_subscription(plan, customer_email=None, currency="INR"):
 		frappe.log_error(f"Razorpay subscription creation failed: {error_msg}")
 		frappe.throw(_("Failed to create subscription: {0}").format(error_msg))
 
-def create_or_get_razorpay_plan(client, plan_doc, currency="INR"):
+def create_or_get_razorpay_plan(client, plan_doc, currency=None):
 	"""Create or get existing Razorpay plan"""
 	frappe.log_error(f"Creating Razorpay plan for: {plan_doc.plan_name}")
+	
+	# Use plan's currency if not provided, but ensure it's supported by Razorpay
+	if not currency:
+		currency = get_razorpay_currency_for_plan(plan_doc)
 	
 	# Check if we already have a Razorpay plan ID stored
 	try:
@@ -580,18 +655,33 @@ def create_or_get_razorpay_plan(client, plan_doc, currency="INR"):
 		period = "monthly"
 		interval = 1
 	
+	# Convert the plan amount to the target currency if needed
+	converted_amount = convert_currency_amount(plan_doc.amount, plan_doc.currency, currency)
+	
+	# Convert amount to smallest currency unit
+	# For USD: dollars to cents (*100)
+	# For INR: rupees to paise (*100)
+	# For other currencies: assume *100 conversion
+	amount_in_smallest_unit = int(float(converted_amount) * 100)
+	
+	frappe.log_error(f"Currency conversion: {plan_doc.amount} {plan_doc.currency} -> {converted_amount} {currency} -> {amount_in_smallest_unit} smallest units")
+	
 	plan_data = {
 		"period": period,
 		"interval": interval,
 		"item": {
 			"name": plan_doc.plan_name,
-			"amount": int(float(plan_doc.amount) * 100),  # Amount in paise
+			"amount": amount_in_smallest_unit,
 			"currency": currency,
 			"description": plan_doc.plan_description or f"{plan_doc.plan_name} subscription"
 		},
 		"notes": {
 			"bms_plan": plan_doc.name,
-			"plan_name": plan_doc.plan_name
+			"plan_name": plan_doc.plan_name,
+			"original_amount": plan_doc.amount,
+			"original_currency": plan_doc.currency,
+			"converted_amount": converted_amount,
+			"target_currency": currency
 		}
 	}
 	
@@ -916,7 +1006,7 @@ def handle_subscription_charged(payload):
 	payment_doc.subscription = bms_subscription.name
 	payment_doc.plan = bms_subscription.plan
 	payment_doc.amount = amount
-	payment_doc.currency = "INR"
+	payment_doc.currency = bms_subscription.currency or "USD"
 	payment_doc.payment_date = today()
 	payment_doc.payment_method = bms_subscription.payment_method or "Credit Card"  # Use same method as subscription
 	payment_doc.payment_gateway = bms_subscription.payment_gateway or "Razorpay"   # Use same gateway as subscription
@@ -936,7 +1026,7 @@ def handle_subscription_charged(payload):
 	invoice_doc.subscription = bms_subscription.name
 	invoice_doc.plan = bms_subscription.plan
 	invoice_doc.amount = amount
-	invoice_doc.currency = "INR"
+	invoice_doc.currency = bms_subscription.currency or "USD"
 	invoice_doc.invoice_date = today()
 	invoice_doc.due_date = today()
 	invoice_doc.status = "Paid"

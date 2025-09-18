@@ -235,7 +235,7 @@ def get_upcoming_renewals():
 			"auto_renewal": 1,
 			"next_billing_date": ["<=", upcoming_date]
 		},
-		fields=["name", "customer", "plan", "amount", "next_billing_date"],
+		fields=["name", "customer", "plan", "amount", "currency", "next_billing_date"],
 		order_by="next_billing_date asc"
 	)
 	
@@ -247,7 +247,7 @@ def get_overdue_invoices():
 		filters={
 			"status": "Overdue"
 		},
-		fields=["name", "customer", "amount", "due_date"],
+		fields=["name", "customer", "amount", "currency", "due_date"],
 		order_by="due_date asc"
 	)
 	

@@ -90,6 +90,25 @@
             load_user_dashboard();
         });
 
+        // Currency formatting function
+        function format_currency(amount, currency = 'USD') {
+            if (!amount) return '0';
+            try {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency
+                }).format(amount);
+            } catch (e) {
+                // Fallback for unsupported currencies
+                const currencySymbols = {
+                    'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'JPY': '¥',
+                    'CNY': '¥', 'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'SGD': 'S$'
+                };
+                const symbol = currencySymbols[currency] || currency || '$';
+                return `${symbol}${parseFloat(amount).toFixed(2)}`;
+            }
+        }
+
         function load_user_dashboard() {
             frappe.call({
                 method: "bms.billing_management_system.api.dashboard.get_dashboard_data",
@@ -129,15 +148,15 @@
                 <div class="payment-summary-grid">
                     <div class="summary-item">
                         <div class="summary-label">Total Paid</div>
-                        <div class="summary-value bms-amount">${format_currency(summary.total_paid)}</div>
+                        <div class="summary-value bms-amount">${format_currency(summary.total_paid, 'USD')}</div>
                     </div>
                     <div class="summary-item">
                         <div class="summary-label">Total Refunded</div>
-                        <div class="summary-value bms-amount negative">${format_currency(summary.total_refunded)}</div>
+                        <div class="summary-value bms-amount negative">${format_currency(summary.total_refunded, 'USD')}</div>
                     </div>
                     <div class="summary-item">
                         <div class="summary-label">Net Amount</div>
-                        <div class="summary-value bms-amount">${format_currency(summary.net_amount)}</div>
+                        <div class="summary-value bms-amount">${format_currency(summary.net_amount, 'USD')}</div>
                     </div>
                 </div>
             `;
@@ -167,7 +186,7 @@
                             </div>
                             <div class="bms-detail-item">
                                 <span class="bms-detail-label">Amount:</span>
-                                <span class="bms-detail-value bms-amount">${format_currency(subscription.amount)}</span>
+                                <span class="bms-detail-value bms-amount">${format_currency(subscription.amount, subscription.currency)}</span>
                             </div>
                             <div class="bms-detail-item">
                                 <span class="bms-detail-label">Billing Cycle:</span>
@@ -187,6 +206,18 @@
                                 <button class="btn btn-warning bms-cancel-button" onclick="cancel_subscription('${subscription.name}')">
                                     <i class="fa fa-times"></i> Cancel
                                 </button>
+                            ` : ''}
+                            ${subscription.status === 'Cancelled' && new Date(subscription.end_date) > new Date() ? `
+                                <button class="btn btn-success bms-reactivate-button" onclick="reactivate_subscription('${subscription.name}')">
+                                    <i class="fa fa-refresh"></i> Reactivate
+                                </button>
+                                <div class="text-warning small mt-1"><i class="fa fa-exclamation-triangle"></i> Cancelled - Can reactivate until ${format_date_safe(subscription.end_date)}</div>
+                            ` : ''}
+                            ${(subscription.status === 'Cancelled' || subscription.status === 'Expired') ? `
+                                <button class="btn btn-primary" onclick="buy_new_subscription()">
+                                    <i class="fa fa-shopping-cart"></i> Buy New Plan
+                                </button>
+                                <div class="text-muted small mt-1">Subscription ended on ${format_date_safe(subscription.end_date)}</div>
                             ` : ''}
                             <button class="btn btn-info" onclick="view_subscription('${subscription.name}')">
                                 <i class="fa fa-eye"></i> View Details
@@ -214,7 +245,7 @@
                     <div class="payment-item">
                         <div class="payment-details">
                             <div class="payment-amount ${payment.payment_type === 'Refund' ? 'bms-amount negative' : 'bms-amount'}">
-                                ${payment.payment_type === 'Refund' ? '-' : ''}${format_currency(payment.amount)}
+                                ${payment.payment_type === 'Refund' ? '-' : ''}${format_currency(payment.amount, payment.currency)}
                             </div>
                             <div class="payment-info">
                                 <div class="payment-type">${payment.payment_type}</div>
@@ -246,7 +277,7 @@
                     <div class="invoice-item">
                         <div class="invoice-details">
                             <div class="invoice-number">${invoice.name}</div>
-                            <div class="invoice-amount bms-amount">${format_currency(invoice.amount)}</div>
+                            <div class="invoice-amount bms-amount">${format_currency(invoice.amount, invoice.currency)}</div>
                             <div class="invoice-date bms-date">${format_date_safe(invoice.invoice_date)}</div>
                         </div>
                         <div class="invoice-actions">
@@ -288,6 +319,33 @@
                     }
                 });
             }, "Cancel Subscription", "Cancel");
+        }
+
+        function reactivate_subscription(subscription_name) {
+            frappe.confirm(
+                __('Are you sure you want to reactivate this subscription? Auto-renewal will be enabled and you will be charged at the next billing cycle.'),
+                function () {
+                    frappe.call({
+                        method: "bms.billing_management_system.api.subscription.reactivate_subscription",
+                        args: {
+                            subscription: subscription_name
+                        },
+                        callback: function (r) {
+                            if (r.message && r.message.status === "success") {
+                                show_success("Subscription reactivated successfully");
+                                load_user_dashboard(); // Reload dashboard
+                            } else {
+                                show_error("Error reactivating subscription: " + (r.message.message || "Unknown error"));
+                            }
+                        }
+                    });
+                },
+                __('Reactivate Subscription')
+            );
+        }
+
+        function buy_new_subscription() {
+            window.location.href = '/pricing';
         }
 
         function view_subscription(subscription_name) {

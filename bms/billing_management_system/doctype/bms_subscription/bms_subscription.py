@@ -122,25 +122,150 @@ class BMSSubscription(Document):
 				self.next_billing_date = self.add_months(end_date, 12)
 	
 	def cancel_subscription(self, reason=None):
-		"""Cancel subscription"""
+		"""Cancel subscription via Razorpay API"""
 		if self.status in ["Cancelled", "Expired"]:
 			frappe.throw(_("Subscription is already cancelled or expired"))
 		
+		# Cancel subscription in Razorpay
+		razorpay_success = self._cancel_razorpay_subscription()
+		
+		# Always proceed with local cancellation (webhook will sync later if needed)
 		self.status = "Cancelled"
 		self.cancellation_date = frappe.utils.today()
 		self.cancellation_reason = reason or "Cancelled by user"
-		self.auto_renewal = 0
+		self.auto_renewal = 0  # Disable auto-renewal when cancelled
 		self.save(ignore_permissions=True)
 		
-		# Create refund request if applicable
-		self.create_refund_request()
+		message = _("Subscription cancelled successfully.")
+		if not razorpay_success:
+			message += _(" Note: There was an issue syncing with the payment gateway, but your cancellation has been processed locally.")
+		frappe.msgprint(message)
+	
+	def _cancel_razorpay_subscription(self):
+		"""Cancel subscription in Razorpay"""
+		if not self.razorpay_subscription_id:
+			frappe.log_error("No Razorpay subscription ID found", "Razorpay Cancellation Error")
+			return False
+		
+		try:
+			# Import Razorpay
+			try:
+				import razorpay
+			except ImportError:
+				frappe.log_error("Razorpay module not available", "Razorpay Import Error")
+				return False
+			
+			# Get Razorpay credentials (same as used in user_portal.py)
+			razorpay_key_id = "rzp_test_RHC1S9293wovjQ"
+			razorpay_key_secret = "DAzu38mqdRSnkgtv83WdWe6O"
+			
+			if not razorpay_key_id or not razorpay_key_secret:
+				frappe.log_error("Razorpay credentials not configured", "Razorpay Config Error")
+				return False
+			
+			# Initialize Razorpay client
+			client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+			
+			frappe.log_error(f"Attempting to cancel Razorpay subscription: {self.razorpay_subscription_id}", "Razorpay Cancellation Attempt")
+			
+			# Cancel the subscription immediately
+			response = client.subscription.cancel(self.razorpay_subscription_id)
+			
+			frappe.log_error(f"Razorpay cancellation successful: {response}", "Razorpay Cancellation Success")
+			return True
+			
+		except Exception as e:
+			frappe.log_error(f"Razorpay cancellation failed: {str(e)}", "Razorpay Cancellation Error")
+			return False
+	
+	def reactivate_subscription(self):
+		"""Reactivate a cancelled subscription via Razorpay"""
+		if self.status != "Cancelled":
+			frappe.throw(_("Only cancelled subscriptions can be reactivated"))
+		
+		# Check if subscription hasn't expired yet
+		today_date = frappe.utils.getdate(frappe.utils.today())
+		end_date = frappe.utils.getdate(self.end_date)
+		if today_date > end_date:
+			frappe.throw(_("Cannot reactivate expired subscription. Please purchase a new subscription."))
+		
+		# Reactivate subscription in Razorpay first
+		razorpay_success = self._reactivate_razorpay_subscription()
+		
+		# Always proceed with local reactivation (webhook will sync later if needed)
+		self.status = "Active"
+		self.auto_renewal = 1  # Enable auto-renewal when reactivated
+		self.cancellation_date = None
+		self.cancellation_reason = None
+		self.calculate_next_billing_date()  # Reset next billing date
+		self.save(ignore_permissions=True)
+		
+		message = _("Subscription reactivated successfully! Auto-renewal has been enabled and next billing date is {0}.").format(self.next_billing_date)
+		if not razorpay_success:
+			message += _(" Note: There was an issue syncing with the payment gateway, but your reactivation has been processed locally.")
+		frappe.msgprint(message)
+	
+	def toggle_auto_renewal(self, enable=True):
+		"""Enable or disable auto-renewal for subscription"""
+		if self.status not in ["Active", "Trial"]:
+			frappe.throw(_("Auto-renewal can only be modified for active subscriptions"))
+		
+		old_value = self.auto_renewal
+		self.auto_renewal = 1 if enable else 0
+		self.save(ignore_permissions=True)
+		
+		if enable and not old_value:
+			frappe.msgprint(_("Auto-renewal enabled. Your subscription will automatically renew."))
+		elif not enable and old_value:
+			frappe.msgprint(_("Auto-renewal disabled. Your subscription will not automatically renew."))
+	
+	def _reactivate_razorpay_subscription(self):
+		"""Reactivate subscription in Razorpay by cancelling the cancellation"""
+		if not self.razorpay_subscription_id:
+			frappe.log_error("No Razorpay subscription ID found", "Razorpay Reactivation Error")
+			return False
+		
+		try:
+			# Import Razorpay
+			try:
+				import razorpay
+			except ImportError:
+				frappe.log_error("Razorpay module not available", "Razorpay Import Error")
+				return False
+			
+			# Get Razorpay credentials (same as used in user_portal.py)
+			razorpay_key_id = "rzp_test_RHC1S9293wovjQ"
+			razorpay_key_secret = "DAzu38mqdRSnkgtv83WdWe6O"
+			
+			if not razorpay_key_id or not razorpay_key_secret:
+				frappe.log_error("Razorpay credentials not configured", "Razorpay Config Error")
+				return False
+			
+			# Initialize Razorpay client
+			client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+			
+			# Remove the pending cancellation (reactivate)
+			response = client.subscription.update(self.razorpay_subscription_id, {
+				"cancel_at_cycle_end": 0  # Remove the pending cancellation
+			})
+			
+			frappe.log_error(f"Razorpay reactivation successful: {response}", "Razorpay Reactivation Success")
+			return True
+			
+		except Exception as e:
+			frappe.log_error(f"Razorpay reactivation failed: {str(e)}", "Razorpay Reactivation Error")
+			return False
 	
 	def create_refund_request(self):
 		"""Create refund request for cancelled subscription"""
 		# Calculate refund amount based on unused period
 		if self.amount and self.start_date and self.end_date:
-			days_used = (frappe.utils.today() - self.start_date).days
-			total_days = (self.end_date - self.start_date).days
+			today_date = frappe.utils.getdate(frappe.utils.today())
+			start_date = frappe.utils.getdate(self.start_date)
+			end_date = frappe.utils.getdate(self.end_date)
+			
+			days_used = (today_date - start_date).days
+			total_days = (end_date - start_date).days
 			
 			if days_used < total_days:
 				unused_ratio = (total_days - days_used) / total_days
@@ -181,6 +306,10 @@ class BMSSubscription(Document):
 	def create_invoice(self):
 		"""Create invoice for subscription"""
 		try:
+			# Prevent invoice generation for cancelled subscriptions
+			if self.status in ["Cancelled", "Cancelled Pending", "Expired"]:
+				frappe.throw(_("Cannot create invoice for cancelled or expired subscription"))
+			
 			# Check if invoice already exists for this subscription
 			existing_invoice = frappe.get_all("BMS Invoice", 
 				filters={"subscription": self.name, "status": ["!=", "Cancelled"]},

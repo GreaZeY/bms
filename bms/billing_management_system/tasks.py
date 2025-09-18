@@ -23,13 +23,13 @@ def check_expired_subscriptions():
 				"status": "Active",
 				"end_date": ["<", today()]
 			},
-			fields=["name", "customer", "plan"]
+			fields=["name", "customer", "plan", "status"]
 		)
 		
 		for subscription in expired_subscriptions:
 			subscription_doc = frappe.get_doc("BMS Subscription", subscription.name)
 			
-			# Check if auto renewal is enabled
+			# Handle expired active subscriptions
 			if subscription_doc.auto_renewal:
 				# Try to renew subscription
 				try:

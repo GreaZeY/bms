@@ -2,34 +2,31 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "field:plan_name",
- "creation": "2024-01-01 00:00:00.000000",
+ "creation": "2024-01-01 00:00:00",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
-  "field_order": [
-   "plan_name",
-   "plan_description",
-   "plan_type",
-   "billing_cycle",
-   "amount",
-   "currency",
-   "trial_period_days",
-   "features",
-   "column_break_9",
-   "is_active",
-   "max_users",
-   "storage_limit_gb",
-   "api_calls_limit",
-   "support_level",
-   "auto_renewal",
-   "cancellation_policy",
-   "refund_policy",
-  "column_break_18",
+ "field_order": [
+  "plan_name",
+  "plan_description",
+  "plan_type",
+  "billing_cycle",
+  "amount",
+  "currency",
+  "trial_period_days",
+  "column_break_9",
+  "is_active",
+  "support_level",
+  "auto_renewal",
+  "cancellation_policy",
+  "refund_policy",
+  "section_break_xqzc",
   "plan_visibility",
   "target_customers",
+  "payment_gateway_references_section",
   "razorpay_plan_id"
-  ],
+ ],
  "fields": [
   {
    "fieldname": "plan_name",
@@ -75,45 +72,21 @@
    "reqd": 1
   },
   {
+   "default": "0",
    "fieldname": "trial_period_days",
    "fieldtype": "Int",
-   "label": "Trial Period (Days)",
-   "default": "0"
-  },
-  {
-   "fieldname": "features",
-   "fieldtype": "Table",
-   "label": "Features",
-   "options": "BMS Plan Feature"
+   "label": "Trial Period (Days)"
   },
   {
    "fieldname": "column_break_9",
    "fieldtype": "Column Break"
   },
   {
+   "default": "1",
    "fieldname": "is_active",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Is Active",
-   "default": "1"
-  },
-  {
-   "fieldname": "max_users",
-   "fieldtype": "Int",
-   "label": "Max Users",
-   "default": "1"
-  },
-  {
-   "fieldname": "storage_limit_gb",
-   "fieldtype": "Int",
-   "label": "Storage Limit (GB)",
-   "default": "1"
-  },
-  {
-   "fieldname": "api_calls_limit",
-   "fieldtype": "Int",
-   "label": "API Calls Limit",
-   "default": "1000"
+   "label": "Is Active"
   },
   {
    "fieldname": "support_level",
@@ -122,10 +95,10 @@
    "options": "Basic\nStandard\nPremium\n24/7"
   },
   {
+   "default": "1",
    "fieldname": "auto_renewal",
    "fieldtype": "Check",
-   "label": "Auto Renewal",
-   "default": "1"
+   "label": "Auto Renewal"
   },
   {
    "fieldname": "cancellation_policy",
@@ -138,32 +111,37 @@
    "label": "Refund Policy"
   },
   {
-   "fieldname": "column_break_18",
-   "fieldtype": "Column Break"
-  },
-  {
+   "default": "All Customers",
    "fieldname": "plan_visibility",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Plan Visibility",
    "options": "All Customers\nSpecific Customers",
-   "reqd": 1,
-   "default": "All Customers"
+   "reqd": 1
   },
   {
+   "depends_on": "plan_visibility",
    "fieldname": "target_customers",
    "fieldtype": "Table",
    "label": "Target Customers",
-   "options": "BMS Plan Customer",
-   "depends_on": "plan_visibility",
-   "mandatory_depends_on": "plan_visibility==Specific Customers"
+   "mandatory_depends_on": "plan_visibility==Specific Customers",
+   "options": "BMS Plan Customer"
   },
   {
    "fieldname": "razorpay_plan_id",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Razorpay Plan ID",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_xqzc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payment_gateway_references_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Gateway References"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -181,7 +159,7 @@
    "link_fieldname": "plan"
   }
  ],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2025-09-15 15:29:29.114906",
  "modified_by": "Administrator",
  "module": "Billing Management System",
  "name": "BMS Plan",
@@ -201,18 +179,11 @@
    "write": 1
   },
   {
-   "create": 0,
-   "delete": 0,
-   "email": 0,
-   "export": 0,
-   "print": 0,
    "read": 1,
-   "report": 0,
-   "role": "BMS User",
-   "share": 0,
-   "write": 0
+   "role": "BMS User"
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

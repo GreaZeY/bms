@@ -1,5 +1,19 @@
+// Currency symbol mapping function
+function getCurrencySymbol(currencyCode) {
+	const currencySymbols = {
+		'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'JPY': '¥',
+		'CNY': '¥', 'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'SGD': 'S$',
+		'HKD': 'HK$', 'NZD': 'NZ$', 'SEK': 'kr', 'NOK': 'kr', 'DKK': 'kr',
+		'PLN': 'zł', 'CZK': 'Kč', 'HUF': 'Ft', 'RUB': '₽', 'BRL': 'R$',
+		'ZAR': 'R', 'MXN': '$', 'KRW': '₩', 'THB': '฿', 'MYR': 'RM',
+		'PHP': '₱', 'IDR': 'Rp', 'VND': '₫'
+	};
+	
+	return currencySymbols[currencyCode] || currencyCode || '$';
+}
+
 frappe.listview_settings['BMS Payment'] = {
-	add_fields: ["status", "customer", "payment_type", "amount", "payment_date"],
+	add_fields: ["status", "customer", "payment_type", "amount", "currency", "payment_date"],
 	get_indicator: function(doc) {
 		if (doc.status == "Completed") {
 			return [__("Completed"), "green", "status,=,Completed"];
@@ -11,6 +25,15 @@ frappe.listview_settings['BMS Payment'] = {
 			return [__("Cancelled"), "grey", "status,=,Cancelled"];
 		} else if (doc.status == "Refunded") {
 			return [__("Refunded"), "blue", "status,=,Refunded"];
+		}
+	},
+	formatters: {
+		amount: function(value, field, doc) {
+			if (!value) return '';
+			const symbol = getCurrencySymbol(doc.currency);
+			const colorClass = doc.payment_type === 'Refund' ? 'color: #d32f2f;' : 'color: #2e7d32;';
+			const prefix = doc.payment_type === 'Refund' ? '-' : '';
+			return `<span style="font-weight: 600; ${colorClass}">${prefix}${symbol}${Math.abs(value)}</span>`;
 		}
 	},
 	onload: function(listview) {

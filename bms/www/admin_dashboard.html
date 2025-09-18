@@ -27,11 +27,11 @@
             </div>
             <div class="bms-stat-card">
                 <h4>Total Revenue</h4>
-                <p class="stat-value" id="total-revenue">$0</p>
+                <p class="stat-value" id="total-revenue">$0.00</p>
             </div>
             <div class="bms-stat-card">
                 <h4>Monthly Revenue</h4>
-                <p class="stat-value" id="monthly-revenue">$0</p>
+                <p class="stat-value" id="monthly-revenue">$0.00</p>
             </div>
         </div>
 
@@ -96,6 +96,25 @@
             load_admin_dashboard();
         });
 
+        // Currency formatting function
+        function format_currency(amount, currency = 'USD') {
+            if (!amount) return '0';
+            try {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currency
+                }).format(amount);
+            } catch (e) {
+                // Fallback for unsupported currencies
+                const currencySymbols = {
+                    'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'JPY': '¥',
+                    'CNY': '¥', 'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'SGD': 'S$'
+                };
+                const symbol = currencySymbols[currency] || currency || '$';
+                return `${symbol}${parseFloat(amount).toFixed(2)}`;
+            }
+        }
+
         function load_admin_dashboard() {
             frappe.call({
                 method: "bms.billing_management_system.api.dashboard.get_dashboard_data",
@@ -117,8 +136,8 @@
             }
 
             if (data.revenue) {
-                document.getElementById('total-revenue').textContent = format_currency(data.revenue.total);
-                document.getElementById('monthly-revenue').textContent = format_currency(data.revenue.monthly);
+                document.getElementById('total-revenue').textContent = format_currency(data.revenue.total, 'USD');
+                document.getElementById('monthly-revenue').textContent = format_currency(data.revenue.monthly, 'USD');
             }
 
             // Update recent activities
@@ -171,7 +190,7 @@
                         <div class="renewal-details">
                             <strong>${renewal.customer}</strong> - ${renewal.plan}
                             <br>
-                            <small>Amount: ${format_currency(renewal.amount)}</small>
+                            <small>Amount: ${format_currency(renewal.amount, renewal.currency)}</small>
                         </div>
                         <div class="renewal-date">${format_date_safe(renewal.next_billing_date)}</div>
                     </div>
@@ -197,7 +216,7 @@
                         <div class="invoice-details">
                             <strong>${invoice.customer}</strong> - ${invoice.name}
                             <br>
-                            <small>Amount: ${format_currency(invoice.amount)}</small>
+                            <small>Amount: ${format_currency(invoice.amount, invoice.currency)}</small>
                         </div>
                         <div class="invoice-date">Due: ${format_date_safe(invoice.due_date)}</div>
                     </div>

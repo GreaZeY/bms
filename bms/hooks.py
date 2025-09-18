@@ -53,6 +53,7 @@ doctype_js = {
 doctype_list_js = {
 	"BMS Subscription": "billing_management_system/doctype/bms_subscription/bms_subscription_list.js",
 	"BMS Payment": "billing_management_system/doctype/bms_payment/bms_payment_list.js",
+	"BMS Invoice": "billing_management_system/doctype/bms_invoice/bms_invoice_list.js",
 	"BMS Plan": "billing_management_system/doctype/bms_plan/bms_plan_list.js"
 }
 

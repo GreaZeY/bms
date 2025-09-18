@@ -192,6 +192,50 @@
             margin-top: 1rem;
         }
 
+        .plan-card.cancelled-reactivatable {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fffbf0 0%, #fff9e6 100%);
+        }
+
+        .plan-card.cancelled-reactivatable::before {
+            content: 'Cancelled - Can Reactivate';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ffc107;
+            color: #212529;
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .plan-card.cancelled-reactivatable .plan-header {
+            margin-top: 1rem;
+        }
+
+        .plan-card.cancelled-expired {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #fdf2f2 0%, #fce8e8 100%);
+        }
+
+        .plan-card.cancelled-expired::before {
+            content: 'Subscription Expired';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #dc3545;
+            color: white;
+            padding: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .plan-card.cancelled-expired .plan-header {
+            margin-top: 1rem;
+        }
+
         .subscription-info {
             background: #e8f5e8;
             border: 1px solid #28a745;
@@ -364,6 +408,15 @@
         }).format(amount);
     }
 
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
     function initializeRazorpay() {
         // Load Razorpay script if not already loaded
         if (!window.Razorpay) {
@@ -484,25 +537,39 @@
 
         grid.innerHTML = availablePlans.map((plan, index) => {
             const hasActiveSub = plan.has_active_subscription;
-            const isFeatured = !hasActiveSub && (plan.is_featured || index === 1); // Featured only if not active
+            const hasCancelledSub = plan.has_cancelled_subscription;
+            const canReactivate = plan.can_reactivate;
+            const hasAnySub = hasActiveSub || hasCancelledSub;
+            const isFeatured = !hasAnySub && (plan.is_featured || index === 1); // Featured only if no subscription
             const features = plan.features && Array.isArray(plan.features) ? plan.features :
                 plan.features && typeof plan.features === 'string' ? plan.features.split('\n').filter(f => f.trim()) :
                     ['Full access to core features', 'Email support', '24/7 availability'];
 
-            // Generate subscription info if active
+            // Generate subscription info for any existing subscription
             let subscriptionInfo = '';
-            if (hasActiveSub && plan.subscription) {
+            if (hasAnySub && plan.subscription) {
                 const sub = plan.subscription;
                 const startDate = new Date(sub.start_date).toLocaleDateString();
                 const endDate = sub.end_date ? new Date(sub.end_date).toLocaleDateString() : 'N/A';
                 const nextBilling = sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString() : 'N/A';
 
+                let statusInfo = '';
+                if (sub.status === 'Active') {
+                    statusInfo = `<strong>Next Billing:</strong> ${nextBilling}`;
+                } else if (sub.status === 'Cancelled Pending') {
+                    statusInfo = `<strong>Active until:</strong> ${endDate}`;
+                } else if (sub.end_date) {
+                    statusInfo = `<strong>Ended:</strong> ${endDate}`;
+                }
+
+                const statusColor = sub.status === 'Active' ? '#28a745' :
+                    sub.status === 'Cancelled Pending' ? '#ffc107' : '#dc3545';
+
                 subscriptionInfo = `
-                    <div class="subscription-info">
-                        <strong>Status:</strong> ${sub.status}<br>
+                    <div class="subscription-info" style="border-color: ${statusColor}; background-color: ${statusColor}15;">
+                        <strong>Status:</strong> <span style="color: ${statusColor};">${sub.status}</span><br>
                         <strong>Started:</strong> ${startDate}<br>
-                        ${sub.status === 'Active' ? `<strong>Next Billing:</strong> ${nextBilling}` :
-                        sub.end_date ? `<strong>Ends:</strong> ${endDate}` : ''}
+                        ${statusInfo}
                     </div>
                 `;
             }
@@ -515,6 +582,18 @@
                         <i class="fa fa-cog"></i> Manage Subscription
                     </a>
                 `;
+            } else if (hasCancelledSub && canReactivate) {
+                actionButton = `
+                    <button class="choose-plan-btn" onclick="choosePlan('${plan.name}')" style="background: #28a745;">
+                        <i class="fa fa-refresh"></i> Reactivate ${plan.plan_name}
+                    </button>
+                `;
+            } else if (hasCancelledSub && !canReactivate) {
+                actionButton = `
+                    <button class="choose-plan-btn" onclick="choosePlan('${plan.name}')">
+                        <i class="fa fa-shopping-cart"></i> Subscribe Again
+                    </button>
+                `;
             } else {
                 actionButton = `
                     <button class="choose-plan-btn" onclick="choosePlan('${plan.name}')">
@@ -526,6 +605,8 @@
             const cardClasses = [
                 'plan-card',
                 hasActiveSub ? 'active-subscription' : '',
+                hasCancelledSub && canReactivate ? 'cancelled-reactivatable' : '',
+                hasCancelledSub && !canReactivate ? 'cancelled-expired' : '',
                 isFeatured ? 'featured' : ''
             ].filter(Boolean).join(' ');
 
@@ -536,7 +617,7 @@
                     </div>
                     
                     <div class="plan-price">
-                        <span class="currency">${plan.currency || '$'}</span>${plan.amount}
+                        ${formatCurrency(plan.amount, plan.currency || 'USD')}
                         <span class="period">/${plan.billing_cycle || 'month'}</span>
                     </div>
                     
@@ -573,13 +654,70 @@
             return;
         }
 
-        // Check if user already has active subscription for this plan
+        // Handle different subscription states
         if (plan.has_active_subscription) {
             showError('You already have an active subscription for this plan. Please manage your subscription from the dashboard.');
             return;
         }
 
+        // If user has a cancelled subscription that can be reactivated, handle it differently
+        if (plan.has_cancelled_subscription && plan.can_reactivate) {
+            handleReactivation(plan);
+            return;
+        }
+
         console.log('Selected plan:', plan);
+
+        // Create new subscription for plans without existing subscriptions
+        createNewSubscription(plan);
+    }
+
+    // Handle reactivation of cancelled subscription
+    function handleReactivation(plan) {
+        console.log('Handling automatic reactivation for plan:', plan);
+
+        // Automatically reactivate without prompting
+        showMessage('info', 'Reactivating your subscription...');
+
+        // Disable buttons during reactivation
+        document.querySelectorAll('.choose-plan-btn').forEach(btn => {
+            btn.disabled = true;
+            btn.textContent = 'Reactivating...';
+        });
+
+        // Call reactivation API
+        frappe.call({
+            method: 'bms.billing_management_system.api.user_portal.reactivate_subscription',
+            args: {
+                subscription: plan.subscription.name,
+                customer_email: currentUser.email
+            },
+            callback: function (r) {
+                console.log('Reactivation response:', r);
+                if (r.message && r.message.status === 'success') {
+                    showMessage('success', 'Subscription reactivated successfully! Redirecting to your dashboard...');
+
+                    // Redirect to user portal after success
+                    setTimeout(() => {
+                        window.location.href = '/user_portal';
+                    }, 2000);
+
+                } else {
+                    showError('Failed to reactivate subscription: ' + (r.message ? r.message.message : 'Unknown error'));
+                    resetButtons();
+                }
+            },
+            error: function (err) {
+                console.error('Error reactivating subscription:', err);
+                showError('Failed to reactivate subscription. Please try again.');
+                resetButtons();
+            }
+        });
+    }
+
+    // Create new subscription (extracted from choosePlan for reuse)
+    function createNewSubscription(plan) {
+        console.log('Creating new subscription for plan:', plan);
 
         // Disable all buttons
         document.querySelectorAll('.choose-plan-btn').forEach(btn => {
@@ -592,7 +730,7 @@
         frappe.call({
             method: 'bms.billing_management_system.api.user_portal.create_razorpay_subscription',
             args: {
-                plan: planName,
+                plan: plan.name,
                 customer_email: currentUser.email
             },
             callback: function (r) {

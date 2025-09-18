@@ -348,6 +348,11 @@
         color: #721c24;
     }
 
+    .status-expired {
+        background: #f5f5f5;
+        color: #6c757d;
+    }
+
     .subscription-details {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -366,6 +371,8 @@
     .subscription-actions {
         display: flex;
         gap: 10px;
+        align-items: flex-start;
+        margin-top: 15px;
     }
 
     .btn-sm {
@@ -382,6 +389,58 @@
     .btn-outline-danger:hover {
         background: #dc3545;
         color: white;
+    }
+
+    .btn-xs {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+        border-radius: 3px !important;
+        height: auto !important;
+        min-height: auto !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-width: 1px !important;
+        font-weight: 500 !important;
+        text-decoration: none !important;
+        vertical-align: middle !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        transition: all 0.15s ease-in-out !important;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
     }
 
     .bms-loading {
@@ -478,6 +537,25 @@
     $(document).ready(function () {
         initializePortal();
     });
+
+    // Currency formatting function
+    function formatCurrency(amount, currency = 'USD') {
+        if (!amount) return '0';
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency
+            }).format(amount);
+        } catch (e) {
+            // Fallback for unsupported currencies
+            const currencySymbols = {
+                'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹', 'JPY': '¥',
+                'CNY': '¥', 'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'SGD': 'S$'
+            };
+            const symbol = currencySymbols[currency] || currency || '$';
+            return `${symbol}${parseFloat(amount).toFixed(2)}`;
+        }
+    }
 
     function initializePortal() {
         // Get current user info
@@ -587,11 +665,17 @@
             <div class="subscription-item">
                 <div class="subscription-header">
                     <h5 class="subscription-title">${subscription.plan_name}</h5>
-                    <span class="subscription-status ${statusClass}">${subscription.status}</span>
+                    <span class="subscription-status ${statusClass}">
+                        ${subscription.status}
+                        ${subscription.status === 'Active' ? '<i class="fa fa-check-circle text-success ms-1" title="Active Subscription"></i>' : ''}
+                        ${subscription.status === 'Cancelled' ? '<i class="fa fa-times-circle text-warning ms-1" title="Cancelled Subscription"></i>' : ''}
+                        ${subscription.status === 'Expired' ? '<i class="fa fa-exclamation-triangle text-danger ms-1" title="Expired Subscription"></i>' : ''}
+                        ${subscription.status === 'Trial' ? '<i class="fa fa-clock-o text-info ms-1" title="Trial Period"></i>' : ''}
+                    </span>
                 </div>
                 <div class="subscription-details">
                     <div class="detail-item">
-                        <strong>Amount:</strong> $${subscription.amount}
+                        <strong>Amount:</strong> ${formatCurrency(subscription.amount, subscription.currency)}
                     </div>
                     <div class="detail-item">
                         <strong>Start Date:</strong> ${formatDate(subscription.start_date)}
@@ -602,11 +686,33 @@
                     <div class="detail-item">
                         <strong>Next Billing:</strong> ${formatDate(subscription.next_billing_date)}
                     </div>
+                    <div class="detail-item">
+                        <strong>Auto Renewal:</strong> 
+                        <span class="auto-renewal-status ${subscription.auto_renewal == 1 ? 'enabled' : 'disabled'}" style="color: ${subscription.auto_renewal == 1 ? '#28a745' : '#dc3545'};">
+                            ${subscription.auto_renewal == 1 ? 'Enabled' : 'Disabled'}
+                            ${subscription.auto_renewal == 1 ? '<i class="fa fa-check-circle ms-1" style="color: #28a745;"></i>' : '<i class="fa fa-times-circle ms-1" style="color: #dc3545;"></i>'}
+                        </span>
+                        <small class="text-muted d-block mt-1">
+                            ${subscription.status === 'Active' && subscription.auto_renewal == 1 ? 'Will auto-renew on next billing cycle' : ''}
+                            ${subscription.status === 'Active' && subscription.auto_renewal == 0 ? 'Will not renew automatically' : ''}
+                            ${subscription.status === 'Cancelled' ? 'Disabled (subscription cancelled)' : ''}
+                        </small>
+                    </div>
                 </div>
                 <div class="subscription-actions">
-                    <button class="btn btn-outline-danger btn-sm" onclick="cancelSubscription('${subscription.name}')">
-                        <i class="fa fa-times"></i> Cancel
-                    </button>
+                    ${subscription.status === 'Active' ? `
+                        <button class="btn btn-danger btn-xs" onclick="cancelSubscription('${subscription.name}')">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                    ` : ''}
+                    ${subscription.status === 'Cancelled' && new Date(subscription.end_date) > new Date() ? `
+                        <button class="btn btn-success btn-xs" onclick="reactivateSubscription('${subscription.name}')">
+                            <i class="fa fa-refresh"></i> Reactivate
+                        </button>
+                        <div class="alert alert-warning mt-2 p-2" style="margin-top: 10px;">
+                            <small><i class="fa fa-info-circle"></i> Subscription cancelled. You can reactivate until ${formatDate(subscription.end_date)}</small>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `);
@@ -637,6 +743,32 @@
             });
         }
     }
+
+    function reactivateSubscription(subscriptionId) {
+        if (confirm('Are you sure you want to reactivate this subscription? Auto-renewal will be enabled and you will be charged at the next billing cycle.')) {
+            // Use Frappe API to reactivate subscription
+            frappe.call({
+                method: 'bms.billing_management_system.api.user_portal.reactivate_subscription',
+                args: {
+                    subscription: subscriptionId
+                },
+                callback: function (r) {
+                    if (r.message && r.message.status === 'success') {
+                        showMessage('success', r.message.message || 'Subscription reactivated successfully!');
+                        setTimeout(function () {
+                            loadSubscriptions();
+                        }, 2000);
+                    } else {
+                        showMessage('error', r.message ? r.message.message : 'Failed to reactivate subscription.');
+                    }
+                },
+                error: function (err) {
+                    showMessage('error', 'Error reactivating subscription: ' + (err.message || 'Unknown error'));
+                }
+            });
+        }
+    }
+
 
     function loadInvoices() {
         console.log('Loading invoices for user:', currentUser);
@@ -698,7 +830,7 @@
                 </div>
                 <div class="subscription-details">
                     <div class="detail-item">
-                        <strong>Amount:</strong> $${invoice.amount}
+                        <strong>Amount:</strong> ${formatCurrency(invoice.amount, invoice.currency)}
                     </div>
                     <div class="detail-item">
                         <strong>Date:</strong> ${formatDate(invoice.invoice_date)}
@@ -779,7 +911,7 @@
                 </div>
                 <div class="subscription-details">
                     <div class="detail-item">
-                        <strong>Amount:</strong> $${payment.amount}
+                        <strong>Amount:</strong> ${formatCurrency(payment.amount, payment.currency)}
                     </div>
                     <div class="detail-item">
                         <strong>Date:</strong> ${formatDate(payment.payment_date)}

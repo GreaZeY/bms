@@ -1,5 +1,41 @@
 // BMS Plan List View Script
 
+// Currency symbol mapping function
+function getCurrencySymbol(currencyCode) {
+	const currencySymbols = {
+		'USD': '$',
+		'EUR': '€',
+		'GBP': '£',
+		'INR': '₹',
+		'JPY': '¥',
+		'CNY': '¥',
+		'AUD': 'A$',
+		'CAD': 'C$',
+		'CHF': 'CHF',
+		'SGD': 'S$',
+		'HKD': 'HK$',
+		'NZD': 'NZ$',
+		'SEK': 'kr',
+		'NOK': 'kr',
+		'DKK': 'kr',
+		'PLN': 'zł',
+		'CZK': 'Kč',
+		'HUF': 'Ft',
+		'RUB': '₽',
+		'BRL': 'R$',
+		'ZAR': 'R',
+		'MXN': '$',
+		'KRW': '₩',
+		'THB': '฿',
+		'MYR': 'RM',
+		'PHP': '₱',
+		'IDR': 'Rp',
+		'VND': '₫'
+	};
+	
+	return currencySymbols[currencyCode] || currencyCode || '$';
+}
+
 frappe.listview_settings['BMS Plan'] = {
 	add_fields: ["plan_name", "amount", "currency", "billing_cycle", "is_active", "plan_visibility"],
 	get_indicator: function(doc) {
@@ -7,6 +43,60 @@ frappe.listview_settings['BMS Plan'] = {
 			return [__("Active"), "green", "is_active,=,1"];
 		} else {
 			return [__("Inactive"), "grey", "is_active,=,0"];
+		}
+	},
+	formatters: {
+		amount: function(value, field, doc) {
+			if (!value) return '';
+			const symbol = getCurrencySymbol(doc.currency);
+			return `<span style="font-weight: 600; color: #2e7d32;">${symbol}${value}</span>`;
+		},
+		is_active: function(value, field, doc) {
+			const switchId = `switch-${doc.name}`;
+			const isActive = value ? 1 : 0;
+			return `
+				<div class="plan-switch-container" onclick="event.stopPropagation();" style="display: flex; align-items: center;">
+					<label class="plan-switch" for="${switchId}" style="
+						position: relative;
+						display: inline-block;
+						width: 44px;
+						height: 22px;
+						margin: 0;
+					">
+						<input type="checkbox" 
+							   id="${switchId}"
+							   ${value ? 'checked' : ''} 
+							   onchange="event.stopPropagation(); togglePlanActiveNew('${doc.name}', this, ${isActive});" 
+							   onclick="event.stopPropagation();"
+							   style="opacity: 0; width: 0; height: 0;">
+						<span class="plan-slider" style="
+							position: absolute;
+							cursor: pointer;
+							top: 0;
+							left: 0;
+							right: 0;
+							bottom: 0;
+							background-color: ${value ? '#28a745' : '#ccc'};
+							transition: background-color 0.2s ease;
+							border-radius: 22px;
+							box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+						">
+							<span class="plan-slider-button" style="
+								position: absolute;
+								content: '';
+								height: 18px;
+								width: 18px;
+								left: ${value ? '24px' : '2px'};
+								bottom: 2px;
+								background-color: white;
+								transition: left 0.2s ease;
+								border-radius: 50%;
+								box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+							"></span>
+						</span>
+					</label>
+				</div>
+			`;
 		}
 	},
 	onload: function(listview) {
@@ -20,31 +110,109 @@ frappe.listview_settings['BMS Plan'] = {
 			frappe.new_doc("BMS Plan");
 		});
 		
-		// Add button to toggle plan status
-		listview.page.add_menu_item(__("Toggle Status"), function() {
-			let selected = listview.get_checked_items();
-			if (selected.length === 0) {
-				frappe.msgprint(__("Please select plans to toggle status"));
+		// Track pending requests to prevent multiple simultaneous updates
+		window.pendingPlanUpdates = window.pendingPlanUpdates || new Set();
+		
+		// Enhanced function to toggle plan active status with better UX
+		window.togglePlanActiveNew = function(planName, switchElement, currentValue) {
+			// Check if there's already a pending update for this plan
+			if (window.pendingPlanUpdates.has(planName)) {
+				// Revert the checkbox state since we're ignoring this click
+				switchElement.checked = currentValue === 1;
 				return;
 			}
 			
-			selected.forEach(function(item) {
-				frappe.call({
-					method: "frappe.client.set_value",
-					args: {
-						doctype: "BMS Plan",
-						name: item.name,
-						fieldname: "is_active",
-						value: item.is_active ? 0 : 1
-					},
-					callback: function(r) {
-						if (r.message) {
-							listview.refresh();
-						}
+			const newValue = switchElement.checked ? 1 : 0;
+			const switchId = `switch-${planName}`;
+			
+			// Add this plan to pending updates
+			window.pendingPlanUpdates.add(planName);
+			
+			// Disable the switch during update to prevent multiple clicks
+			switchElement.disabled = true;
+			
+			// Get the visual elements for immediate feedback
+			const slider = switchElement.nextElementSibling;
+			const sliderButton = slider.querySelector('.plan-slider-button');
+			
+			// Add a loading state visual indicator
+			slider.style.opacity = '0.7';
+			slider.style.cursor = 'not-allowed';
+			
+			// Immediately update visual state for better UX
+			if (newValue) {
+				slider.style.backgroundColor = '#28a745';
+				sliderButton.style.left = '24px';
+			} else {
+				slider.style.backgroundColor = '#ccc';
+				sliderButton.style.left = '2px';
+			}
+			
+			frappe.db.set_value("BMS Plan", planName, "is_active", newValue)
+				.then(() => {
+					// Remove from pending updates
+					window.pendingPlanUpdates.delete(planName);
+					
+					// Re-enable the switch and restore normal appearance
+					switchElement.disabled = false;
+					slider.style.opacity = '1';
+					slider.style.cursor = 'pointer';
+					
+					frappe.show_alert({
+						message: __('Plan status updated successfully'),
+						indicator: 'green'
+					});
+					
+					// Refresh after a short delay to avoid jarring UI changes
+					setTimeout(() => {
+						listview.refresh();
+					}, 300);
+				})
+				.catch((error) => {
+					// Remove from pending updates
+					window.pendingPlanUpdates.delete(planName);
+					
+					// Re-enable the switch and restore normal appearance
+					switchElement.disabled = false;
+					slider.style.opacity = '1';
+					slider.style.cursor = 'pointer';
+					
+					// Revert visual state on error
+					switchElement.checked = currentValue === 1;
+					if (currentValue === 1) {
+						slider.style.backgroundColor = '#28a745';
+						sliderButton.style.left = '24px';
+					} else {
+						slider.style.backgroundColor = '#ccc';
+						sliderButton.style.left = '2px';
 					}
+					
+					frappe.show_alert({
+						message: __('Failed to update plan status'),
+						indicator: 'red'
+					});
+					console.error(error);
 				});
-			});
-		});
+		};
+		
+		// Keep the old function for backward compatibility
+		window.togglePlanActive = function(planName, isActive) {
+			frappe.db.set_value("BMS Plan", planName, "is_active", isActive ? 1 : 0)
+				.then(() => {
+					listview.refresh();
+					frappe.show_alert({
+						message: __('Plan status updated successfully'),
+						indicator: 'green'
+					});
+				})
+				.catch((error) => {
+					frappe.show_alert({
+						message: __('Failed to update plan status'),
+						indicator: 'red'
+					});
+					console.error(error);
+				});
+		};
 	}
 };
 
@@ -193,7 +361,7 @@ function createPricingCard(plan, index) {
 			
 			<div class="plan-price">
 				<div class="price-amount">
-					<span class="price-currency">${plan.currency || '$'}</span>${plan.amount || '0'}
+					<span class="price-currency">${getCurrencySymbol(plan.currency)}</span>${plan.amount || '0'}
 				</div>
 				<div class="price-period">per ${plan.billing_cycle ? plan.billing_cycle.toLowerCase() : 'month'}</div>
 			</div>
@@ -453,3 +621,5 @@ $(document).ready(function() {
 			.appendTo('head');
 	}
 });
+
+
